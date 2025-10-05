@@ -619,7 +619,6 @@ def exam_logout():
     flash('You have been successfully logged out.', 'info')
     return redirect(url_for('index'))
 
-
 if __name__ == '__main__':
-    # Running on port 5001 for development to avoid conflict with admin app (5000)
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get("PORT", 5000))  # Render sets PORT dynamically
+    app.run(host="0.0.0.0", port=port, debug=False)
