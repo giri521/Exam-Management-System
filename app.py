@@ -1032,7 +1032,7 @@ def prepare_email_by_exam_id(exam_id):
     # 1. Generate credentials and default body
     credentials_list = []
     # IMPORTANT: The test link points to the separate exam app, running on port 5001
-    test_link_base = f"http://127.0.0.1:5001/test_login/{exam_id}"
+    test_link_base = f"https://exam-management-system-5ck2.onrender.com/test_login/{exam_id}"
 
     for student in applied_students:
         recipient_email = student['applicantEmail']
@@ -1719,3 +1719,4 @@ if __name__ == '__main__':
             print("-----------------------------------\n")
 
     app.run(debug=True)
+
