@@ -14,3 +14,6 @@ Pillow
 
 # Email (usually built-in smtplib/ssl, but for safety if you extend)
 secure-smtplib
+tensorflow
+tf-keras
+
