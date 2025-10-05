@@ -1709,14 +1709,14 @@ def student_logout():
 
 
 if __name__ == '__main__':
-    # Fix for slow reloads: only run logic in the primary process
-    if os.environ.get("WERKZEUG_RUN_MAIN") is None or os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        
-        if not EMAIL_USER or not EMAIL_PASS:
-            print("\n--- WARNING: EMAIL CONFIGURATION ---")
-            print("EMAIL_USER or EMAIL_PASS not set. Email sending will likely fail.")
-            print("Please set these variables in your .env file.")
-            print("-----------------------------------\n")
+    if not EMAIL_USER or not EMAIL_PASS:
+        print("\n--- WARNING: EMAIL CONFIGURATION ---")
+        print("EMAIL_USER or EMAIL_PASS not set. Email sending will likely fail.")
+        print("Please set these variables in your .env file.")
+        print("-----------------------------------\n")
 
-    app.run(debug=True)
+    # Render requires binding to the provided PORT, not default 5000
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
+
 
