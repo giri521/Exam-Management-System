@@ -1,0 +1,16 @@
+Flask
+python-dotenv
+requests
+python-dateutil
+gunicorn
+
+# Face Recognition / Detection
+deepface
+opencv-python
+numpy
+
+# For image encoding/decoding
+Pillow
+
+# Email (usually built-in smtplib/ssl, but for safety if you extend)
+secure-smtplib
