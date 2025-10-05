@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Management</title>
+    <style>
+        /* General Styles */
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; flex-direction: column; }
+        .wrapper { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 95%; max-width: 1000px; margin: 20px auto; }
+        h2 { text-align: center; color: #007bff; margin-bottom: 20px; }
+
+        /* Form/Input Styles */
+        input[type="text"], input[type="password"], input[type="url"], input[type="date"], input[type="datetime-local"], input[type="number"], textarea, select { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .input-inline { display: inline-block; width: auto; }
+        button, .management-options a { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; transition: background-color 0.3s ease; text-decoration: none; display: block; text-align: center;}
+        button:hover, .management-options a:hover { opacity: 0.9; }
+
+        /* Flash Messages */
+        .flash { padding: 10px; margin: 10px auto; border-radius: 4px; text-align: center; max-width: 600px; }
+        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        /* Navigation Styles */
+        .dashboard-menu { list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-bottom: 40px; }
+        .dashboard-menu li a { min-width: 150px; }
+        .top-nav { list-style: none; padding: 0; display: flex; justify-content: flex-start; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 10px;}
+        .top-nav a { padding: 5px 10px; border: 1px solid #ccc; border-radius: 4px; color: #333; text-decoration: none; }
+        .top-nav a:hover { background-color: #eee; }
+
+        /* Management Options */
+        .management-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .action-edit { background-color: #ffc107; color: #333; }
+        .action-email { background-color: #28a745; }
+        .action-delete { background-color: #dc3545; }
+
+        /* Exam Question Form Styles */
+        .question-box { border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; border-radius: 6px; background: #f9f9f9; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .options-grid input[type="text"] { margin-bottom: 0; }
+        .correct-answer-select { width: 50%; padding: 10px; border-radius: 4px; border: 1px solid #ccc; margin-top: 10px;}
+        .subject-selection, .question-counts { margin-top: 20px; padding: 15px; border: 1px solid #eee; border-radius: 5px;}
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;}
+        .subject-count-input { margin-bottom: 15px; border: 1px solid #ccc; padding: 10px; border-radius: 4px; }
+        .subject-count-input label { font-weight: bold; margin-bottom: 5px; display: block; }
+
+        /* Tables */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .data-table th { background-color: #f2f2f2; color: #333; }
+        .data-table tr:nth-child(even){ background-color: #f9f9f9; }
+        
+        /* Status Tags */
+        .status-success { color: #28a745; font-weight: bold; }
+        .status-fail { color: #dc3545; font-weight: bold; }
+        .status-not-sent { color: #ffc107; }
+        .status-shortlisted { color: #007bff; font-weight: bold; background-color: #e6f0ff; }
+        .status-rejected { color: #6c757d; background-color: #f7f7f7; }
+        
+        .password-col { font-family: monospace; font-size: 0.9em; }
+        .exam-action-cell { display: flex; gap: 10px; flex-wrap: wrap; }
+        .exam-action-cell a { margin: 0; padding: 5px 10px; font-size: 0.9em; width: auto; display: inline-block; text-align: center; }
+
+        /* Results View Specific Styles */
+        .results-filter { background: #f0f8ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end; }
+        .results-filter > div { flex-grow: 1; }
+        .results-filter label { font-weight: bold; margin-bottom: 5px; display: block; }
+        .results-filter input { margin-bottom: 0; width: 100%; }
+        .results-filter button, .results-filter a { margin-top: 0; width: auto; padding: 10px 15px; display: inline-block; }
+        .results-table-container { margin-top: 20px; }
+        .email-template-box { background: #f9f9f9; padding: 15px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 20px; }
+        .email-template-box h3 { margin-top: 0; }
+    </style>
+    <script>
+        // JavaScript to dynamically show question count inputs (Step 1 form)
+        function toggleQuestionCounts() {
+            const subjects = document.querySelectorAll('input[name="subjects"]:checked');
+            const countContainer = document.getElementById('question-counts-container');
+            countContainer.innerHTML = ''; // Clear previous inputs
+
+            if (subjects.length === 0) {
+                countContainer.innerHTML = '<p>Select subjects to specify question counts.</p>';
+                return;
+            }
+
+            subjects.forEach(subject => {
+                const subjectName = subject.value;
+                const div = document.createElement('div');
+                div.className = 'subject-count-input';
+                div.innerHTML = `
+                    <label for="count_${subjectName}">Number of questions for <b>${subjectName}</b>:</label>
+                    <input type="number" id="count_${subjectName}" name="count_${subjectName}" min="1" required placeholder="Enter question count for ${subjectName}">
+                `;
+                countContainer.appendChild(div);
+            });
+        }
+    </script>
+</head>
+<body>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="wrapper">
+
+    {% if dashboard_view %}
+        <h2>Admin Dashboard</h2>
+        <ul class="dashboard-menu">
+            <li><a href="{{ url_for('dashboard') }}" style="background-color: #007bff;">All Applications</a></li>
+            <li><a href="{{ url_for('add_application') }}" style="background-color: #17a2b8;">Add Application</a></li>
+            <li><a href="{{ url_for('view_all_exams') }}" style="background-color: #ffc107; color: #333;">View All Exam Papers</a></li>
+            <li><a href="{{ url_for('students_and_accounts') }}" style="background-color: #6f42c1;">Students/Accounts List</a></li>
+            <li><a href="{{ url_for('logout') }}" style="background-color: #dc3545;">Logout</a></li>
+        </ul>
+
+        <h3 style="border-bottom: 2px solid #28a745; padding-bottom: 5px; margin-top: 30px;">Open Job Postings ({{ open_applications | length }} Active)</h3>
+        {% if open_applications %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Job Title</th>
+                        <th>Department</th>
+                        <th>Last Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in open_applications %}
+                    <tr>
+                        <td>{{ app.jobTitle }}</td>
+                        <td>{{ app.department }}</td>
+                        <td>{{ app.lastDate | default('N/A') }}</td>
+                        <td><a href="{{ url_for('manage_application', object_id=app.objectId) }}">Manage</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">No open applications currently available.</p>
+        {% endif %}
+
+        <h3 style="border-bottom: 2px solid #ffc107; padding-bottom: 5px; margin-top: 40px;">Past Job Postings ({{ past_applications | length }} Closed)</h3>
+        {% if past_applications %}
+            <table class="data-table" style="opacity: 0.7;">
+                <thead>
+                    <tr>
+                        <th>Job Title</th>
+                        <th>Department</th>
+                        <th>Last Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in past_applications %}
+                    <tr>
+                        <td>{{ app.jobTitle }}</td>
+                        <td>{{ app.department }}</td>
+                        <td>{{ app.lastDate | default('N/A') }}</td>
+                        <td><a href="{{ url_for('manage_application', object_id=app.objectId) }}">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">No past applications recorded.</p>
+        {% endif %}
+
+
+    {% elif students_and_accounts_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('dashboard') }}">&larr; Back to Dashboard</a></li>
+        </ul>
+        <h2>Students & Sent Credentials (Mock Backend)</h2>
+        <p>This table simulates the credentials saved to your **exam_login** backend table after sending emails to applicants.</p>
+
+        {% if mock_credentials %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Student Email (Username)</th>
+                        <th>Password (Generated)</th>
+                        <th>Exam ID</th>
+                        <th>Date Sent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for email, data in mock_credentials.items() %}
+                    <tr>
+                        <td><strong>{{ email }}</strong></td>
+                        <td><code style="color: #dc3545;">{{ data.password }}</code></td>
+                        <td><a href="{{ url_for('show_exam_paper', exam_id=data.exam_id) }}">{{ data.exam_id | truncate(length=12, killwords=True, end='...') }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">No exam credentials have been sent or saved yet.</p>
+        {% endif %}
+
+    {% elif view_all_exams_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('dashboard') }}">&larr; Back to Applications</a></li>
+            <li><a href="{{ url_for('students_and_accounts') }}">Students/Accounts List</a></li>
+        </ul>
+        <h2>All Created Exam Papers</h2>
+        {% if all_exams %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Exam Title</th>
+                        <th>Application ID</th>
+                        <th>Date Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exam in all_exams %}
+                    <tr>
+                        <td><strong>{{ exam.examTitle }}</strong></td>
+                        <td>{{ exam.applicationId | truncate(length=12, killwords=True, end='...') }}</td>
+                        <td>{{ exam.created | default('N/A') }}</td>
+                        <td><a href="{{ url_for('show_exam_paper', exam_id=exam.objectId) }}">View Paper</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">No exam papers found.</p>
+        {% endif %}
+
+
+    {% elif edit_application_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('manage_application', object_id=application.objectId) }}">&larr; Back to Management</a></li>
+            <li><a href="{{ url_for('dashboard') }}">All Applications</a></li>
+        </ul>
+        <h2>Edit Job Posting: {{ application.jobTitle }}</h2>
+
+        <form action="{{ url_for('edit_application', object_id=application.objectId) }}" method="POST">
+            <label for="jobTitle"><b>Job Title</b></label>
+            <input type="text" placeholder="e.g., Senior Software Developer" name="jobTitle" required value="{{ application.jobTitle or '' }}">
+            <label for="department"><b>Department</b></label>
+            <input type="text" placeholder="e.g., Engineering" name="department" required value="{{ application.department or '' }}">
+            <label for="location"><b>Location</b></label>
+            <input type="text" placeholder="e.g., Remote or Chennai" name="location" required value="{{ application.location or '' }}">
+            <label for="lastDate"><b>Last Date for Applying</b></label>
+            <input type="date" name="lastDate" value="{{ application.lastDate or '' }}">
+            <label for="description"><b>Job Description</b></label>
+            <textarea placeholder="Provide a detailed description of the role..." name="description" rows="6" required>{{ application.description or '' }}</textarea>
+
+            <button type="submit">Update Job Posting</button>
+        </form>
+
+    {% elif create_exam_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('manage_application', object_id=application_id) }}">&larr; Back to Management</a></li>
+            <li><a href="{{ url_for('dashboard') }}">All Applications</a></li>
+        </ul>
+        <h2>Step 1: Exam Configuration for Application ID: {{ application_id }}</h2>
+
+        <form action="{{ url_for('create_exam', object_id=application_id) }}" method="POST">
+            <h3>Exam Details</h3>
+            <label for="examTitle"><b>Exam Title</b></label>
+            <input type="text" name="examTitle" required placeholder="e.g., Technical Assessment - Batch 1">
+
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <label for="startDateTime"><b>Start Date and Time</b></label>
+                    <input type="datetime-local" name="startDateTime" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="endDateTime"><b>End Date and Time</b></label>
+                    <input type="datetime-local" name="endDateTime" required>
+                </div>
+            </div>
+
+            <label for="testDuration"><b>Test Duration (in minutes)</b></label>
+            <input type="number" name="testDuration" min="10" required placeholder="e.g., 60">
+
+            <div class="subject-selection">
+                <h3>Select Subjects</h3>
+                <div class="checkbox-group" onchange="toggleQuestionCounts()">
+                    {% for subject in exam_subjects %}
+                        <label>
+                            <input type="checkbox" name="subjects" value="{{ subject }}"> {{ subject }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="question-counts">
+                <h3>Questions Per Subject</h3>
+                <div id="question-counts-container">
+                    <p>Select subjects above to specify question counts.</p>
+                </div>
+            </div>
+
+            <button type="submit">Proceed to Question Entry &rarr;</button>
+        </form>
+
+
+    {% elif enter_questions_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('create_exam', object_id=application_id) }}">&larr; Back to Configuration</a></li>
+            <li><a href="{{ url_for('dashboard') }}">All Applications</a></li>
+        </ul>
+        <h2>Step 2: Enter Questions for {{ exam_data.examTitle }}</h2>
+        <p>Total questions to enter: <strong>{{ exam_data.total_questions }}</strong></p>
+        <p>Breakdown:
+            {% for subject, count in exam_data.question_counts.items() %}
+                <span style="font-weight: bold;">{{ subject }} ({{ count }})</span>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+
+        <form action="{{ url_for('enter_questions', application_id=application_id) }}" method="POST">
+
+            {% set q_count = [1] %}
+            {% for subject, count in exam_data.question_counts.items() %}
+                <h3 style="margin-top: 30px; border-bottom: 2px solid #ccc; padding-bottom: 5px;">{{ subject }} Questions</h3>
+
+                {% for i in range(count) %}
+                    <div class="question-box">
+                        <h4>Question {{ q_count[0] }} ({{ subject }})</h4>
+                        <label for="q{{q_count[0]}}_text"><b>Question Text</b></label>
+                        <textarea name="q{{q_count[0]}}_text" required rows="2"></textarea>
+
+                        <div class="options-grid">
+                            <div>
+                                <label>A</label>
+                                <input type="text" name="q{{q_count[0]}}_a" required placeholder="Option A">
+                            </div>
+                            <div>
+                                <label>B</label>
+                                <input type="text" name="q{{q_count[0]}}_b" required placeholder="Option B">
+                            </div>
+                            <div>
+                                <label>C</label>
+                                <input type="text" name="q{{q_count[0]}}_c" required placeholder="Option C">
+                            </div>
+                            <div>
+                                <label>D</label>
+                                <input type="text" name="q{{q_count[0]}}_d" required placeholder="Option D">
+                            </div>
+                        </div>
+
+                        <label for="q{{q_count[0]}}_answer" style="display: block; margin-top: 15px;"><b>Correct Answer</b></label>
+                        <select name="q{{q_count[0]}}_answer" class="correct-answer-select" required>
+                            <option value="">Select Correct Option</option>
+                            <option value="A">Option A</option>
+                            <option value="B">Option B</option>
+                            <option value="C">Option C</option>
+                            <option value="D">Option D</option>
+                        </select>
+                    </div>
+                    {% set _ = q_count.append(q_count.pop() + 1) %}
+                {% endfor %}
+            {% endfor %}
+
+            <button type="submit">Finalize & Save Exam Paper</button>
+        </form>
+
+
+    {% elif show_exam_paper_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('manage_application', object_id=application_id) }}">&larr; Back to Management</a></li>
+            <li><a href="{{ url_for('create_exam', object_id=application_id) }}">Create New Exam</a></li>
+        </ul>
+        <h2>Exam Paper: {{ exam_paper.examTitle }}</h2>
+        <ul class="exam-details-list">
+            <li><strong>Application ID:</strong> {{ application_id }}</li>
+            <li><strong>Total Questions:</strong> {{ exam_paper.questions | length }}</li>
+            <li><strong>Start Time:</strong> {{ exam_paper.startDateTime }}</li>
+            <li><strong>End Time:</strong> {{ exam_paper.endDateTime }}</li>
+            <li><strong>Duration:</strong> {{ exam_paper.testDuration }} minutes</li>
+            <li><strong>Exam Paper ID:</strong> {{ exam_paper.examId }}</li>
+        </ul>
+
+        <h3>Question Paper</h3>
+        <div class="exam-question-list">
+            {% for question in exam_paper.questions %}
+                <div class="question-item">
+                    <p><b>({{ question.subject }}) {{ question.text }}</b></p>
+                    <ul style="list-style-type: none; padding-left: 20px;">
+                        <li>(A) {{ question.optionA }}</li>
+                        <li>(B) {{ question.optionB }}</li>
+                        <li>(C) {{ question.optionC }}</li>
+                        <li>(D) {{ question.optionD }}</li>
+                    </ul>
+                    <p style="color: green; font-weight: bold;">Correct Answer: {{ question.correctAnswer }}</p>
+                </div>
+            {% endfor %}
+        </div>
+
+
+    {% elif manage_application_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('dashboard') }}">All Applications</a></li>
+            <li><a href="{{ url_for('students_and_accounts') }}">All Created Students</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+
+        <h2>Manage Application: {{ application_title }}</h2>
+        <p style="text-align: center;">Choose an action for this job posting.</p>
+
+        <div class="management-options">
+            <a href="{{ url_for('edit_application', object_id=application_id) }}" class="action-edit">Edit Application</a>
+            <a href="{{ url_for('create_exam', object_id=application_id) }}" style="background-color: #007bff;">Create New Exam</a>
+            {# The main button is now a shortcut to the latest exam's email prep page #}
+            <a href="{{ url_for('prepare_email', object_id=application_id) }}" class="action-email">Prepare & Send LATEST Exam Invite Email</a>
+            {% if latest_exam_id %}
+                {# UPDATED LINK TO USE LATEST EXAM ID FOR RESULTS #}
+                <a href="{{ url_for('view_results_by_exam_id', exam_id=latest_exam_id) }}" style="background-color: #6f42c1;">📊 View LATEST Exam Results & Shortlist</a>
+            {% else %}
+                <a href="#" style="background-color: #ccc; cursor: default;" onclick="alert('No exam paper found for this application yet.');">View Exam Results (No Exam)</a>
+            {% endif %}
+            <a href="{{ url_for('application_action', action_type='delete', object_id=application_id) }}" class="action-delete"
+                onclick="return confirm('Are you sure you want to delete this application?');">Delete Application</a>
+        </div>
+
+        <h3 style="margin-top: 40px; border-bottom: 2px solid #007bff; padding-bottom: 5px;">Linked Exam Papers ({{ all_exams_for_job | length }})</h3>
+        {% if all_exams_for_job %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Exam Title</th>
+                        <th>Duration</th>
+                        <th>Date Created</th>
+                        <th style="width: 400px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exam in all_exams_for_job %}
+                    <tr>
+                        <td><strong>{{ exam.examTitle }}</strong></td>
+                        <td>{{ exam.testDuration }} mins</td>
+                        <td>{{ exam.created | default('N/A') }}</td>
+                        <td class="exam-action-cell">
+                            <a href="{{ url_for('show_exam_paper', exam_id=exam.objectId) }}">View Paper</a>
+                            {# Button to prepare email for this specific exam #}
+                            <a href="{{ url_for('prepare_email_by_exam_id', exam_id=exam.objectId) }}" style="background-color: #28a745; border: 1px solid #1e7e34;">Prepare Email</a>
+                            {# Button to view results for this specific exam #}
+                            <a href="{{ url_for('view_results_by_exam_id', exam_id=exam.objectId) }}" style="background-color: #6f42c1; border: 1px solid #4a2893;">View Results</a>
+                            {# Button to view terminated students for this specific exam, passing show=terminated filter #}
+                            <a href="{{ url_for('view_results_by_exam_id', exam_id=exam.objectId, show='terminated') }}" 
+                               style="background-color: #dc3545; border: 1px solid #bd2130;">🚫 View Terminated</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center; padding: 10px; border: 1px dashed #ccc; margin-top: 20px;">No exam papers have been created for this application yet.</p>
+        {% endif %}
+
+        <h3 style="margin-top: 40px; border-bottom: 2px solid #007bff; padding-bottom: 5px;">Applied Students ({{ applied_students | length }})</h3>
+
+        {% if applied_students %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name & Email</th>
+                        <th>College / CGPA</th>
+                        <th>Date Applied</th>
+                        <th>Resume</th>
+                        <th>Exam Password</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in applied_students %}
+                    <tr>
+                        <td>
+                            <strong>{{ student.applicantName or 'N/A' }}</strong><br>
+                            <small style="color: #6c757d;">{{ student.applicantEmail }}</small>
+                        </td>
+                        <td>{{ student.collegeName }}<br>({{ student.cgpa }})</td>
+                        <td>{{ student.applied_at or 'N/A' }}</td>
+                        <td>
+                            {% if student.file_id %}
+                                <a href="{{ url_for('mock_download_resume', file_id=student.file_id) }}" target="_blank" style="color: green; text-decoration: underline;">Download PDF</a>
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="password-col">
+                            {{ student.exam_password }}
+                        </td>
+                        <td>
+                            <span class="status-{{ student.exam_sent_status | lower | replace('_', '-') }}">
+                                {{ student.exam_sent_status }}
+                            </span>
+                            {% if student.exam_sent_status == 'SUCCESS' %}
+                                <br><small>Exam ID: {{ student.exam_id | truncate(length=6) }}...</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center; padding: 20px; border: 1px dashed #ccc; margin-top: 20px;">No students have applied for this job yet.</p>
+        {% endif %}
+
+
+    {% elif view_results_view %}
+        <ul class="top-nav">
+            {# Use application_id for the back-to-management link #}
+            <li><a href="{{ url_for('manage_application', object_id=application_id) }}">&larr; Back to Management</a></li> 
+            <li><a href="{{ url_for('dashboard') }}">All Applications</a></li>
+        </ul>
+        <h2>Results & Shortlisting for: {{ exam_title }}</h2>
+        <p>Exam ID: {{ exam_id | truncate(length=12, killwords=True, end='...') }}</p>
+        
+        {# Only show the filter form if we are NOT in the dedicated terminated view #}
+        {% if not is_terminated_view %}
+        <p>Use the filters to determine the final shortlist based on assessment scores.</p>
+        <form action="{{ url_for('view_results_by_exam_id', exam_id=exam_id) }}" method="GET" class="results-filter">
+            <div>
+                <label for="min_percent">Min Percentage (%)</label>
+                <input type="number" name="min_percent" id="min_percent" min="0" max="100" value="{{ min_percent_filter or 0 }}" style="width: 100%;">
+            </div>
+            <div>
+                <label for="top_n">Top N Students</label>
+                <input type="number" name="top_n" id="top_n" min="0" value="{{ top_n_filter or 0 }}" style="width: 100%;">
+            </div>
+            <button type="submit" style="background-color: #17a2b8;">Apply Filters</button>
+            {# Update clear filters link to use the specific exam_id #}
+            <a href="{{ url_for('view_results_by_exam_id', exam_id=exam_id) }}" style="background-color: #6c757d; width: auto; padding: 10px 15px;">Clear Filters</a>
+        </form>
+        {% endif %}
+        
+        <h3 style="margin-top: 30px; border-bottom: 2px solid #dc3545; padding-bottom: 5px;">
+            {% if is_terminated_view %}
+                🚫 Terminated Students Management
+            {% else %}
+                Exam Results & Termination Management
+            {% endif %}
+        </h3>
+
+        <p>
+            {% if not is_terminated_view %}
+                Current Shortlisted Count: <strong style="color: #007bff;">{{ results_list | selectattr('shortlisted') | list | length }}</strong> / 
+                Total Applicants with Results: <strong style="color: #333;">{{ results_list | selectattr('percentage', 'ne', 'N/A') | list | length }}</strong> /
+            {% endif %}
+            Terminated Students: <strong style="color: #dc3545;">{{ results_list | selectattr('is_terminated') | list | length }}</strong>
+        </p>
+
+        {% if results_list %}
+            <div class="results-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            {# Display Rank/Percentage only if not in Terminated View #}
+                            {% if not is_terminated_view %}
+                                <th>Rank</th>
+                                <th>Percentage</th>
+                            {% endif %}
+                            <th>Name & Email</th>
+                            <th>Status / Reason</th>
+                            <th>Applied At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in results_list %}
+                        <tr {% if student.is_terminated %}style="background-color: #fdd;"{% endif %}>
+                            {# Display Rank/Percentage only if not in Terminated View #}
+                            {% if not is_terminated_view %}
+                            <td><strong>{{ student.rank if student.percentage != 'N/A' and not student.is_terminated else 'N/A' }}</strong></td>
+                                <td>
+                                    {% if student.is_terminated %}
+                                        <span class="status-fail">BLOCKED</span>
+                                    {% else %}
+                                        <strong>{{ student.percentage | default('N/A') }}%</strong>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            <td>
+                                <strong>{{ student.applicantName or 'N/A' }}</strong><br>
+                                <small style="color: #6c757d;">{{ student.applicantEmail }}</small>
+                            </td>
+                            <td>
+                                {% if student.is_terminated %}
+                                    <span class="status-fail" style="background-color: #f8d7da; padding: 5px; border-radius: 4px;">TERMINATED: {{ student.termination_reason or 'No Reason Provided' }}</span>
+                                {% else %}
+                                <span class="status-{{ 'shortlisted' if student.shortlisted else 'rejected' }}">
+                                    {{ 'SHORTLISTED' if student.shortlisted and student.percentage != 'N/A' else ('REJECTED' if student.percentage != 'N/A' else 'AWAITING RESULT') }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ student.applied_at or 'N/A' }}</td>
+                            <td>
+                                {% if student.is_terminated %}
+                                    <a href="{{ url_for('remove_termination', exam_id=exam_id, termination_object_id=student.termination_id, email=student.applicantEmail) }}" 
+                                       class="action-email" 
+                                       style="background-color: #ffc107; color: #333; padding: 5px 10px; width: auto; font-size: 0.85em; display: inline-block; margin: 0;"
+                                       onclick="return confirm('WARNING: Are you sure you want to remove the termination for {{ student.applicantName }}? A restoration email will be sent.');">
+                                       ✅ Remove Block
+                                    </a>
+                                {% else %}
+                                    <small style="color: #6c757d;">
+                                        {% if not is_terminated_view %}
+                                            No action required
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {# Only show "Prepare Email" button if we are NOT in the terminated view #}
+            {% if not is_terminated_view %}
+            <a href="{{ url_for('prepare_results_email', exam_id=exam_id) }}" style="background-color: #28a745; margin-top: 20px;">
+                Proceed to Prepare Results Email
+            </a>
+            {% else %}
+            {# Provide link back to normal results view from terminated view #}
+            <a href="{{ url_for('view_results_by_exam_id', exam_id=exam_id) }}" style="background-color: #007bff; margin-top: 20px;">
+                &larr; Back to Full Exam Results
+            </a>
+            {% endif %}
+            
+        {% else %}
+            <p style="text-align: center; padding: 20px; border: 1px dashed #ccc; margin-top: 20px;">
+                {% if is_terminated_view %}
+                    No active termination records found.
+                {% else %}
+                    No exam results found for this application. (Did students take the exam?)
+                {% endif %}
+            </p>
+        {% endif %}
+
+    {% elif prepare_results_email_view %}
+        <ul class="top-nav">
+            {# Update link to view_results_by_exam_id to use exam_id #}
+            <li><a href="{{ url_for('view_results_by_exam_id', exam_id=exam_id) }}">&larr; Back to Results</a></li>
+            <li><a href="{{ url_for('manage_application', object_id=application_id) }}">Application Management</a></li>
+        </ul>
+        <h2>Send Final Decisions for {{ exam_title }}</h2>
+        <p>You are about to send results to **{{ selected_count }} selected** and **{{ rejected_count }} rejected** applicants. Customize the messages below.</p>
+
+        {# Update form action to use exam_id #}
+        <form action="{{ url_for('send_final_results_email', exam_id=exam_id) }}" method="POST">
+            
+            <div style="display: flex; gap: 30px;">
+                <div style="flex: 1;" class="email-template-box">
+                    <h3 style="color: #007bff;">Selected Students Email Body ({{ selected_count }})</h3>
+                    <label for="selected_email_body"><b>Custom Message for Shortlisted Applicants</b></label>
+                    <textarea name="selected_email_body" id="selected_email_body" rows="10" required style="font-family: Arial, sans-serif; font-size: 14px; box-sizing: border-box; resize: vertical;">{{ default_selected_body }}</textarea>
+                </div>
+                
+                <div style="flex: 1;" class="email-template-box">
+                    <h3 style="color: #6c757d;">Rejected Students Email Body ({{ rejected_count }})</h3>
+                    <label for="rejected_email_body"><b>Custom Message for Non-Selected Applicants</b></label>
+                    <textarea name="rejected_email_body" id="rejected_email_body" rows="10" required style="font-family: Arial, sans-serif; font-size: 14px; box-sizing: border-box; resize: vertical;">{{ default_rejected_body }}</textarea>
+                </div>
+            </div>
+
+            <p style="margin-top: 10px; color: #888; font-size: 0.9em;">
+                *Note: The test percentage and shortlisting status will be automatically added above your custom message.
+            </p>
+
+            <button type="submit" style="background-color: #dc3545; margin-top: 20px;">
+                Confirm & Send {{ selected_count + rejected_count }} Final Results Emails
+            </button>
+        </form>
+
+
+    {% elif prepare_email_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('manage_application', object_id=application_id) }}">&larr; Back to Management</a></li>
+            <li><a href="{{ url_for('dashboard') }}">All Applications</a></li>
+        </ul>
+        <h2>Prepare Exam Invitation for {{ exam_title }}</h2>
+        <p>Review the generated credentials and customize the email body before sending the invites.</p>
+
+        <form action="{{ url_for('send_final_email', object_id=application_id) }}" method="POST">
+
+            <h3 style="margin-top: 20px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Generated Credentials ({{ credentials_list | length }})</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Email (Username)</th>
+                        <th>Generated Password</th>
+                        <th>Test Link</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cred in credentials_list %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ cred.email }}</strong></td>
+                        <td><code style="color: #dc3545;">{{ cred.password }}</code></td>
+                        <td><a href="{{ cred.test_link }}" target="_blank">{{ cred.test_link }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 30px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Editable Email Body</h3>
+            <label for="email_body_text"><b>Edit Email Content (Plain Text/Basic HTML)</b></label>
+            <textarea name="email_body_text" id="email_body_text" rows="15" required style="font-family: Arial, sans-serif; font-size: 14px; box-sizing: border-box; resize: vertical;">{{ default_email_body }}</textarea>
+
+            <p style="margin-top: 10px; color: #888; font-size: 0.9em;">
+                *Note: The personalized login details (Username, Password, and Link) will be automatically prepended to this content for each student before sending. You can use basic HTML tags (like &lt;p&gt;, &lt;strong&gt;, &lt;ul&gt;) in the text area above.
+            </p>
+
+            <button type="submit" style="background-color: #28a745;">Finalize & Send {{ credentials_list | length }} Invitations</button>
+        </form>
+
+    {% elif add_application_view %}
+        <h2>Create New Job Posting</h2>
+        <form action="{{ url_for('add_application') }}" method="POST">
+            <label for="jobTitle"><b>Job Title</b></label>
+            <input type="text" placeholder="e.g., Senior Software Developer" name="jobTitle" required value="{{ job_data.jobTitle or '' }}">
+            <label for="department"><b>Department</b></label>
+            <input type="text" placeholder="e.g., Engineering" name="department" required value="{{ job_data.department or '' }}">
+            <label for="location"><b>Location</b></label>
+            <input type="text" placeholder="e.g., Remote or Chennai" name="location" required value="{{ job_data.location or '' }}">
+            <label for="lastDate"><b>Last Date for Applying</b></label>
+            <input type="date" name="lastDate" value="{{ job_data.lastDate or '' }}">
+            <label for="description"><b>Job Description</b></label>
+            <textarea placeholder="Provide a detailed description of the role..." name="description" rows="6" required>{{ job_data.description or '' }}</textarea>
+
+            <button type="submit">Publish Job Posting</button>
+            <a href="{{ url_for('dashboard') }}" style="display: block; text-align: center; margin-top: 15px;">&larr; Back to Dashboard</a>
+        </form>
+
+    {% else %}
+        <div class="login-container">
+            <h2>Admin Login</h2>
+            <form action="{{ url_for('login') }}" method="POST">
+                <label for="username"><b>Username</b></label>
+                <input type="text" placeholder="Enter Username" name="username" required>
+                <label for="password"><b>Password</b></label>
+                <input type="password" placeholder="Enter Password" name="password" required>
+                <button type="submit">Login</button>
+            </form>
+            <p style="text-align: center; margin-top: 20px; font-size: 0.9em;">
+                **Fixed Credentials:**<br>
+                **Username:** `admin`<br>
+                **Password:** `password123`
+            </p>
+        </div>
+    {% endif %}
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Assessment Portal</title>
+    <style>
+        /* General Styles */
+        body { font-family: Arial, sans-serif; background-color: #e9eef2; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+        .wrapper { background: #fff; padding: 40px; border-radius: 10px; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); width: 95%; max-width: 800px; margin: 20px auto; }
+        h2 { text-align: center; color: #004a8f; margin-bottom: 30px; }
+
+        /* Form/Input Styles */
+        input[type="text"], input[type="password"], input[type="email"] { width: 100%; padding: 12px; margin: 8px 0 20px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { background-color: #004a8f; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; transition: background-color 0.3s ease; }
+        button:hover { background-color: #003366; }
+
+        /* Flash Messages */
+        .flash { padding: 15px; margin: 15px auto; border-radius: 8px; text-align: center; max-width: 600px; font-weight: bold; }
+        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .flash.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+        /* Exam View Specific Styles */
+        .question-container { border: 1px solid #ddd; padding: 20px; margin-bottom: 25px; border-radius: 8px; background: #f9f9f9; }
+        .question-text { font-size: 1.1em; font-weight: bold; color: #333; margin-bottom: 15px; }
+        .option-label { display: block; margin: 10px 0; padding: 10px; background-color: #fff; border: 1px solid #eee; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
+        .option-label:hover { background-color: #eef; }
+        .option-label input[type="radio"] { margin-right: 10px; }
+
+        /* Final Submission Button */
+        .submit-exam-btn { background-color: #dc3545; margin-top: 30px; padding: 15px; font-size: 18px; }
+        .submit-exam-btn:hover { background-color: #c82333; }
+        
+        /* Navigation */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 30px; }
+
+        /* Pre-Check View Specific Styles */
+        .check-status { font-size: 1.1em; padding: 10px 15px; margin: 15px 0; border-radius: 6px; display: flex; align-items: center; font-weight: bold; }
+        .check-status.pending { background-color: #fff3cd; color: #856404; }
+        .check-status.success { background-color: #d4edda; color: #155724; }
+        .check-status.error { background-color: #f8d7da; color: #721c24; }
+        .status-icon { margin-right: 10px; font-size: 1.2em; } 
+        #video-stream { width: 100%; max-width: 320px; height: 240px; border: 3px solid #004a8f; border-radius: 8px; display: block; margin: 20px auto; background-color: #333; }
+        .start-exam-btn:disabled { background-color: #6c757d !important; cursor: not-allowed; }
+        
+        /* Hidden canvas for image capture */
+        #capture-canvas { display: none; }
+
+        /* In-Exam Proctoring Overlay Styles */
+        #proctoring-overlay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #proctoring-overlay #proctoring-video {
+            width: 160px;
+            height: 120px;
+            border: 3px solid red; 
+            border-radius: 4px;
+            display: block;
+        }
+        #proctoring-overlay #proctoring-status-in-exam {
+            text-align: center;
+            font-size: 0.8em;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        
+        /* Countdown Timer Style */
+        #countdown-timer {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #004a8f;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            min-width: 180px;
+            text-align: center;
+            /* Hide initially */
+            display: none; 
+        }
+
+        /* Fullscreen styles to ensure the body content fills the view */
+        .wrapper.fullscreen-active {
+            max-width: none;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 20px;
+            overflow: auto;
+        }
+        body.fullscreen-active {
+            padding: 0;
+            align-items: stretch;
+        }
+
+        /* NEW: Fullscreen Enforcer Modal */
+        #fullscreen-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000; /* Above everything else */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            max-width: 600px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .modal-content h2 {
+            color: #dc3545;
+        }
+        /* Hide exam content initially */
+        .exam-content {
+            display: none;
+        }
+
+        /* NEW: Progress Bar Styles */
+        .progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 10px;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.5s ease-in-out;
+            background-color: #004a8f; /* Default Blue */
+        }
+        .progress-bar.low { background-color: #ffc107; } /* Yellow */
+        .progress-bar.medium { background-color: #17a2b8; } /* Cyan/Info */
+        .progress-bar.high { background-color: #28a745; } /* Green */
+    </style>
+</head>
+<body class="{{ 'fullscreen-active' if exam_view else '' }}">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div id="main-wrapper" class="wrapper {{ 'fullscreen-active' if exam_view else '' }}">
+
+    {% if test_login_view %}
+
+        <h2 style="color: #004a8f;">Online Assessment Login</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Please enter your **Exam ID**, **Email**, and **Password** from your invitation email to begin the test.
+        </p>
+
+        <form action="{{ url_for('test_login', exam_id=exam_id) }}" method="POST">
+
+            <label for="exam_id"><b>Exam ID</b></label>
+            <input
+                type="text"
+                placeholder="Enter Exam ID (e.g., A7B2C...)"
+                name="exam_id"
+                value="{{ exam_id if not is_placeholder else '' }}"
+                {% if not is_placeholder %}readonly{% endif %}
+                required
+            >
+
+            {% if is_placeholder %}
+                <p style="font-size: 0.9em; color: #dc3545; margin-top: -15px;">**Note:** You must enter the full Exam ID manually.</p>
+            {% endif %}
+
+            <label for="email"><b>Email (Username)</b></label>
+            <input type="email" placeholder="Enter Email" name="email" required value="{{ pre_fill_email if pre_fill_email is defined else '' }}">
+
+            <label for="password"><b>Password</b></label>
+            <input type="password" placeholder="Enter Password" name="password" required>
+
+            <button type="submit">Start Test &rarr;</button>
+            <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: #004a8f;">Logout</a>
+        </form>
+
+    {% elif pre_check_view %}
+    
+        <h2 style="color: #004a8f;">System Check: Camera, Mic, Network, & Face Presence</h2>
+        <p style="text-align: center; color: #dc3545; font-weight: bold;">
+            ⚠️ You must enable all devices and look at the camera to start the exam.
+        </p>
+        <p style="text-align: center; margin-bottom: 20px;">
+            **Exam:** {{ exam_title }} | **Student:** {{ email }}
+        </p>
+        <hr>
+
+        <video id="video-stream" autoplay playsinline muted></video>
+        <canvas id="capture-canvas"></canvas>
+
+        <div id="camera-status" class="check-status pending">
+            <span class="status-icon">🟡</span> Camera Status: Testing...
+        </div>
+
+        <div id="mic-status" class="check-status pending">
+            <span class="status-icon">🟡</span> Microphone Status: Testing...
+        </div>
+        
+        <div id="network-status" class="check-status pending">
+            <span class="status-icon">🟡</span> Network Speed: Testing Upload...
+            <div class="progress-bar-container">
+                <div id="speed-progress-bar" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div id="face-status" class="check-status pending">
+            <span class="status-icon">🟡</span> Face Detection: Starting Server Check...
+        </div>
+
+        <button id="start-exam-btn" disabled class="submit-exam-btn start-exam-btn">
+            System Checks Incomplete
+        </button>
+
+        <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: #dc3545;">
+            Cancel and Log Out
+        </a>
+
+    {% elif instructions_view %}
+
+        <h2 style="color: #dc3545;">Exam Instructions & Final Warning</h2>
+        <p style="text-align: center; font-size: 1.1em; margin-bottom: 30px;">
+            **Exam:** {{ exam_paper.examTitle }} | **Duration:** {{ exam_paper.testDuration }} minutes
+        </p>
+        <hr>
+
+        <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <p style="font-size: 1.2em; font-weight: bold; margin-top: 0;">CRITICAL PROCTORING REQUIREMENTS:</p>
+            <ul>
+                <li>This exam is **actively proctored** using your camera and microphone.</li>
+                <li>You must remain in **FULLSCREEN** mode for the entire duration.</li>
+                <li>**Do not** exit fullscreen, switch tabs, refresh, or navigate away.</li>
+                <li>**Any** violation will result in **immediate exam termination** and automatic submission of your current progress.</li>
+            </ul>
+        </div>
+        
+        <p style="text-align: center;">By clicking the button below, your exam will begin. You will be immediately prompted to enter fullscreen mode. **The timer and questions will not be shown until you activate fullscreen.**</p>
+
+        <button id="start-exam-final-btn" class="submit-exam-btn" style="background-color: #004a8f; margin-top: 30px;">
+            I Understand: Start Exam &rarr;
+        </button>
+
+        <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: #dc3545;">
+            Cancel and Log Out
+        </a>
+
+    {% elif exam_view %}
+        
+        <div id="fullscreen-modal">
+            <div class="modal-content">
+                <h2>⚠️ FULLSCREEN REQUIRED ⚠️</h2>
+                <p style="font-size: 1.1em;">
+                    Your exam is ready, but to maintain proctoring integrity, you must enter **Full-Screen Mode**.
+                </p>
+                <p style="font-weight: bold; color: #dc3545;">
+                    The timer will NOT start, and questions will NOT be visible until you click the button below.
+                </p>
+                <button id="activate-fullscreen-btn" class="submit-exam-btn" style="width: auto; padding: 15px 40px; margin-top: 20px;">
+                    Activate Fullscreen & Start Exam
+                </button>
+            </div>
+        </div>
+
+        <div id="proctoring-status-container" class="exam-content">
+            {% if deepface_proctoring %}
+            <div id="proctoring-overlay">
+                <p style="margin: 0 0 5px 0; font-size: 0.9em; font-weight: bold; color: #004a8f;">Proctoring Status</p>
+                <video id="proctoring-video" autoplay playsinline muted></video>
+                <p id="proctoring-status-in-exam" style="color: red;">Checking Face...</p>
+            </div>
+            {% endif %}
+            <canvas id="capture-canvas"></canvas>
+            
+            <div id="countdown-timer">
+                Time Remaining: <span id="time-display">Calculating...</span>
+            </div>
+        </div>
+
+        <div id="exam-questions-content" class="exam-content" style="width: 100%;">
+            <div class="top-nav">
+                <h2 style="margin: 0; color: #004a8f;">{{ exam_paper.examTitle }}</h2>
+                <p style="margin: 0;">Logged in as: <strong>{{ email }}</strong></p>
+            </div>
+
+            <p><strong>Total Questions:</strong> {{ exam_paper.questions | length }}</p>
+            <p><strong>Duration:</strong> {{ exam_paper.testDuration }} minutes</p>
+            <p style="color: #dc3545; font-weight: bold;">
+                CRITICAL WARNING: This exam is actively proctored. Exiting fullscreen, switching tabs, refreshing, or navigating away WILL automatically terminate your exam.
+            </p>
+            <hr>
+
+            <form id="exam-form" action="{{ url_for('submit_exam', exam_id=exam_paper.examId) }}" method="POST" onsubmit="return confirm('Are you absolutely sure you want to submit the exam? You cannot re-take it.');">
+
+                {% for question in exam_paper.questions %}
+                <div class="question-container">
+                    <p class="question-text">Q{{ loop.index }}. ({{ question.subject }}) {{ question.text }}</p>
+
+                    {% set options = [('A', question.optionA), ('B', question.optionB), ('C', question.optionC), ('D', question.optionD)] %}
+
+                    <div class="options-group">
+                        {% for value, text in options %}
+                            <label class="option-label">
+                                <input type="radio" name="{{ question.objectId }}" value="{{ value }}" required>
+                                ({{ value }}) {{ text }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <button type="submit" class="submit-exam-btn">FINALIZE & SUBMIT EXAM</button>
+            </form>
+        </div>
+
+    {% elif exam_finished_view %}
+
+        <h2>Assessment Finished</h2>
+
+        {% set submission_successful = True if get_flashed_messages(category_filter=['success']) else False %}
+
+        <p style="text-align: center; font-size: 1.2em; color: {{ '#28a745' if submission_successful else '#dc3545' }}; font-weight: bold;">
+            {% if submission_successful %}
+                Your submission was successful!
+            {% else %}
+                Access to this exam page is generally denied after submission or outside the exam window.
+            {% endif %}
+        </p>
+        
+        <p style="text-align: center; font-size: 1.5em; margin-top: 30px;">
+            {% if submission_successful %}
+                Thank you for completing the assessment.
+            {% else %}
+                If you believe this is an error, please contact support.
+            {% endif %}
+        </p>
+        <p style="text-align: center; color: #666;">
+            The final result will be communicated by the hiring team directly via email.
+        </p>
+
+        <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 30px;">
+            <button style="width: auto; padding: 10px 30px; background-color: #6c757d;">Log Out</button>
+        </a>
+
+    {% endif %}
+
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if we are in the pre-check view (STEP 2)
+            const videoElementPreCheck = document.getElementById('video-stream');
+            
+            // Check if we are in the exam view (STEP 4)
+            const isExamView = {{ 'true' if exam_view else 'false' }};
+            const isProctoringEnabled = {{ 'true' if exam_view and deepface_proctoring else 'false' }};
+            const examDurationMinutes = {{ exam_paper.testDuration if exam_view else '0' }};
+            const examId = "{{ exam_paper.examId if exam_view else exam_id }}"
+            
+            // Check if we are in the instructions view (STEP 3)
+            const isInstructionsView = {{ 'true' if instructions_view else 'false' }};
+            const startExamFinalBtn = document.getElementById('start-exam-final-btn');
+
+            let intervalHandle = null; 
+            let examStarted = false; // Flag for when timer/proctoring are active
+
+
+            // --- SHARED ELEMENTS ---
+            const canvas = document.getElementById('capture-canvas');
+            const checkFaceApiUrl = "{{ url_for('api_check_face') }}";
+            const reportViolationApiUrl = "{{ url_for('api_report_violation') }}";
+            let currentStream = null;
+            let faceCheckInterval = null;
+            let countdownTimer = null; 
+            let isExamActive = false; // Flag to track if exam is running and we should enforce proctoring
+
+            // =======================================================
+            // CORE PROCTORING VIOLATION HANDLER (Optimized for Speed)
+            // =======================================================
+
+            async function reportAndTerminate(violationType, message) {
+                // IMPORTANT: Prevent double submission/termination
+                if (!isExamActive) return; 
+                isExamActive = false;
+                examStarted = false;
+
+                // Calculate current progress (needed for server logging)
+                const answers = Array.from(document.querySelectorAll('#exam-form input[type="radio"]:checked')).length;
+
+                // 1. IMMEDIATE USER ALERT
+                alert("CRITICAL VIOLATION: Your exam is terminated. Please contact the administrator immediately.");
+
+                // 2. Stop all local processes immediately
+                if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+                if (faceCheckInterval) { clearInterval(faceCheckInterval); }
+                if (countdownTimer) { clearInterval(countdownTimer); }
+                if (intervalHandle) { clearInterval(intervalHandle); }
+
+                // 3. ASYNCHRONOUSLY log the violation to the server (Non-blocking)
+                try {
+                    await fetch(reportViolationApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            violation_type: violationType,
+                            current_score: answers
+                        })
+                    });
+                } catch (error) {
+                    console.error("Failed to report violation to server (Non-blocking):", error);
+                }
+                
+                // 4. IMMEDIATE REDIRECTION
+                window.location.href = "{{ url_for('exam_finished') }}"; 
+            }
+
+            // =======================================================
+            // FULLSCREEN & TAB/REFRESH PROCTORING ENFORCEMENT
+            // =======================================================
+
+            if (isExamView) {
+                const fullscreenModal = document.getElementById('fullscreen-modal');
+                const activateFullscreenBtn = document.getElementById('activate-fullscreen-btn');
+                const countdownTimerDiv = document.getElementById('countdown-timer');
+                const examContent = document.querySelectorAll('.exam-content');
+
+                // --- Fullscreen API Handlers (Only run when the exam has officially started) ---
+                document.addEventListener('fullscreenchange', function (event) {
+                    // Check if exam is running AND we exited fullscreen
+                    if (isExamActive && !document.fullscreenElement) {
+                        reportAndTerminate(
+                            'FULLSCREEN_EXIT_VIOLATION',
+                            'You exited fullscreen mode, which is a critical violation.'
+                        );
+                    }
+                });
+                
+                document.addEventListener('webkitfullscreenchange', function (event) {
+                    if (isExamActive && !document.webkitFullscreenElement) { reportAndTerminate('FULLSCREEN_EXIT_VIOLATION', 'You exited fullscreen mode.'); }
+                });
+                document.addEventListener('mozfullscreenchange', function (event) {
+                    if (isExamActive && !document.mozFullScreenElement) { reportAndTerminate('FULLSCREEN_EXIT_VIOLATION', 'You exited fullscreen mode.'); }
+                });
+
+                // --- Tab/Window Blur Handler (Switching Tabs/Minimizing) ---
+                window.addEventListener('blur', function() {
+                    if (isExamActive) {
+                        reportAndTerminate(
+                            'WINDOW_SWITCH_VIOLATION', 
+                            'You left the exam window or switched tabs, which is a critical violation.'
+                        );
+                    }
+                });
+
+                // --- Before Unload Handler (Refresh/Close/Back) ---
+                window.addEventListener('beforeunload', function (e) {
+                    if (isExamActive) {
+                        reportAndTerminate(
+                            'PAGE_EXIT_VIOLATION', 
+                            'You attempted to refresh or navigate away from the exam. Your exam is terminated.'
+                        );
+                        e.preventDefault(); 
+                        e.returnValue = ''; 
+                    }
+                });
+
+                document.getElementById('exam-form').addEventListener('submit', function() {
+                    isExamActive = false; 
+                    if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+                    if (faceCheckInterval) { clearInterval(faceCheckInterval); }
+                    if (countdownTimer) { clearInterval(countdownTimer); }
+                    if (intervalHandle) { clearInterval(intervalHandle); }
+                });
+
+                // =======================================================
+                // NEW: FULLSCREEN MODAL ENFORCEMENT & EXAM START
+                // =======================================================
+
+                function proceedToExamStart() {
+                    // 1. Hide the modal and show content
+                    fullscreenModal.style.display = 'none';
+                    examContent.forEach(el => el.style.display = 'block');
+                    countdownTimerDiv.style.display = 'block';
+
+                    // 2. Set the global active flags
+                    isExamActive = true;
+                    examStarted = true;
+
+                    // 3. Start Timer and Proctoring
+                    startExamTimer();
+                    if (isProctoringEnabled) {
+                         startInExamProctoring();
+                    }
+                    console.log("Exam started successfully.");
+                }
+
+                async function requestFullscreenAndStart() {
+                    const examWrapper = document.documentElement;
+
+                    try {
+                        await examWrapper.requestFullscreen();
+                        
+                        const checkStart = () => {
+                            if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+                                document.removeEventListener('fullscreenchange', checkStart);
+                                document.removeEventListener('webkitfullscreenchange', checkStart);
+                                document.removeEventListener('mozfullscreenchange', checkStart);
+                                proceedToExamStart();
+                            }
+                        };
+                        
+                        document.addEventListener('fullscreenchange', checkStart);
+                        document.addEventListener('webkitfullscreenchange', checkStart);
+                        document.addEventListener('mozfullscreenchange', checkStart);
+                        
+                        // Immediate check in case the request succeeds instantly
+                        checkStart();
+
+
+                    } catch (e) {
+                        // User denied fullscreen
+                        alert("Fullscreen access denied. You must allow fullscreen to start the exam.");
+                        activateFullscreenBtn.disabled = false;
+                        activateFullscreenBtn.textContent = 'Activate Fullscreen & Start Exam';
+                    }
+                }
+
+                activateFullscreenBtn.addEventListener('click', function() {
+                    this.disabled = true;
+                    this.textContent = 'Requesting Fullscreen...';
+                    requestFullscreenAndStart();
+                });
+
+
+                // -------------------------------------------------------------------
+                // The rest of the ExamView logic (Timer and Proctoring)
+                // -------------------------------------------------------------------
+
+                function startExamTimer() {
+                    const timeDisplay = document.getElementById('time-display');
+                    const endTime = Date.now() + (examDurationMinutes * 60 * 1000);
+
+                    function updateTimer() {
+                        const now = Date.now();
+                        const timeRemaining = endTime - now;
+
+                        if (timeRemaining <= 0) {
+                            clearInterval(intervalHandle);
+                            timeDisplay.textContent = "00:00";
+                            isExamActive = false; 
+                            if (faceCheckInterval) clearInterval(faceCheckInterval);
+                            alert("Time's Up! Your exam is being automatically submitted.");
+                            document.getElementById('exam-form').submit();
+                            return;
+                        }
+
+                        const totalSeconds = Math.floor(timeRemaining / 1000);
+                        const totalMinutes = Math.floor(totalSeconds / 60);
+                        const seconds = totalSeconds % 60;
+                        
+                        const formattedTime = 
+                            String(totalMinutes).padStart(2, '0') + ":" +
+                            String(seconds).padStart(2, '0');
+
+                        timeDisplay.textContent = formattedTime;
+
+                        if (totalSeconds <= 300) { 
+                            timeDisplay.style.color = '#ffdddd';
+                            document.getElementById('countdown-timer').style.backgroundColor = '#dc3545';
+                        }
+                    }
+
+                    updateTimer();
+                    intervalHandle = setInterval(updateTimer, 1000);
+                }
+
+                function startCountdownDisplay(currentCount) {
+                    const statusProctoring = document.getElementById('proctoring-status-in-exam');
+                    if (countdownActive) return; 
+
+                    countdownActive = true;
+                    let count = 5;
+                    statusProctoring.innerHTML = `<span style="color: red;">⚠️ No Face! Retrying in ${count}s...</span>`;
+
+                    countdownTimer = setInterval(() => {
+                        count--;
+                        if (count > 0) {
+                            statusProctoring.innerHTML = `<span style="color: red;">⚠️ No Face! Retrying in ${count}s...</span>`;
+                        } else {
+                            clearInterval(countdownTimer);
+                            countdownActive = false;
+                        }
+                    }, 1000);
+                }
+
+                async function performInExamDeepFaceCheck() {
+                    const videoProctoring = document.getElementById('proctoring-video');
+                    const statusProctoring = document.getElementById('proctoring-status-in-exam');
+                    if (videoProctoring.readyState < 2 || countdownActive) return; 
+
+                    canvas.width = videoProctoring.videoWidth;
+                    canvas.height = videoProctoring.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(videoProctoring, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                    const answers = Array.from(document.querySelectorAll('#exam-form input[type="radio"]:checked')).length;
+                    
+                    try {
+                        const response = await fetch(checkFaceApiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image_data: imageData, current_score: answers }) 
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.terminate) {
+                            reportAndTerminate(result.violation_type || 'SERVER_PROCTORING_TERMINATION', result.message);
+                            return;
+                        }
+
+                        if (result.face_detected) {
+                            if(countdownTimer) clearInterval(countdownTimer);
+                            countdownActive = false;
+                            statusProctoring.textContent = "OK: Face Detected";
+                            videoProctoring.style.borderColor = 'green';
+                        } else {
+                            videoProctoring.style.borderColor = 'orange';
+
+                            if (result.no_face_count > 0 && result.no_face_count < 5) {
+                                startCountdownDisplay(result.no_face_count);
+                            } else if (result.multiple_face_count === 1) {
+                                statusProctoring.innerHTML = `<span style="color: red;">VIOLATION (1st): Multiple faces detected. Next offense terminates exam!</span>`;
+                            } else {
+                                statusProctoring.textContent = result.message;
+                            }
+                        }
+
+                    } catch (error) {
+                        statusProctoring.textContent = "ERROR: Lost connection.";
+                        videoProctoring.style.borderColor = 'red';
+                    }
+                }
+
+                async function startInExamProctoring() {
+                    const videoProctoring = document.getElementById('proctoring-video');
+                    const statusProctoring = document.getElementById('proctoring-status-in-exam');
+                    const intervalTime = 5000; 
+                    
+                    try {
+                        currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        videoProctoring.srcObject = currentStream;
+                        videoProctoring.play();
+                        
+                        faceCheckInterval = setInterval(performInExamDeepFaceCheck, intervalTime + 500);
+                        statusProctoring.textContent = "Proctoring ON.";
+                        videoProctoring.style.borderColor = 'green'; 
+
+                    } catch (err) {
+                        statusProctoring.textContent = "CRITICAL: Camera Lost/Blocked! Exam is compromised.";
+                        videoProctoring.style.borderColor = 'red';
+                        reportAndTerminate(
+                            'CAMERA_ACCESS_LOST', 
+                            'Critical Error: Your camera access was lost during the exam. Your exam is terminated.'
+                        );
+                    }
+                }
+            } 
+            // End of In-Exam Proctoring Logic
+
+            
+            // =======================================================
+            // 2. PRE-CHECK LOGIC (For pre_check_view)
+            // =======================================================
+            if (videoElementPreCheck) { 
+                const cameraStatus = document.getElementById('camera-status');
+                const micStatus = document.getElementById('mic-status');
+                const networkStatus = document.getElementById('network-status'); 
+                const faceStatus = document.getElementById('face-status');
+                const startButton = document.getElementById('start-exam-btn');
+                const progressBar = document.getElementById('speed-progress-bar'); // NEW Element
+
+                let isCameraReady = false;
+                let isMicReady = false;
+                let isNetworkReady = false; 
+                let isFaceDetected = false;
+
+                function updateStatus(element, isSuccess, message) {
+                    element.className = 'check-status ' + (isSuccess ? 'success' : 'error');
+                    element.querySelector('.status-icon').textContent = isSuccess ? '🟢' : '🔴';
+                    // NOTE: Special handling for network status to preserve the progress bar container
+                    if (element.id !== 'network-status') {
+                        element.innerHTML = `<span class="status-icon">${isSuccess ? '🟢' : '🔴'}</span> ${message}`;
+                    } else {
+                        // For network status, only update the text, preserving the inner bar structure
+                        let icon = element.querySelector('.status-icon').outerHTML;
+                        let bar = element.querySelector('.progress-bar-container').outerHTML;
+                        element.innerHTML = `${icon} ${message} ${bar}`;
+                    }
+                }
+
+                function checkStartButton() {
+                    if (isCameraReady && isMicReady && isNetworkReady && isFaceDetected) {
+                        startButton.disabled = false;
+                        startButton.style.backgroundColor = '#004a8f';
+                        startButton.textContent = "Proceed to Exam Instructions →"; 
+                    } else {
+                        startButton.disabled = true;
+                        startButton.style.backgroundColor = '#6c757d';
+                        startButton.textContent = "System Checks Incomplete";
+                    }
+                }
+
+                // --- NEW CLIENT-SIDE NETWORK CHECK WITH ANIMATION ---
+                function checkNetworkSpeed() {
+                    // Update text only, preserving bar structure
+                    let icon = networkStatus.querySelector('.status-icon').outerHTML;
+                    let bar = networkStatus.querySelector('.progress-bar-container').outerHTML;
+                    networkStatus.innerHTML = `${icon} Network Speed: Testing Upload... ${bar}`;
+                    networkStatus.classList.remove('error');
+                    networkStatus.classList.add('pending');
+                    
+                    progressBar.style.width = '0%';
+                    progressBar.className = 'progress-bar'; // Reset class
+
+                    let step = 0;
+                    const interval = setInterval(() => {
+                        step++;
+                        let percent = step * 20; 
+                        progressBar.style.width = percent + '%';
+
+                        if (percent <= 40) {
+                            progressBar.classList.add('low');
+                        } else if (percent <= 80) {
+                            progressBar.classList.remove('low');
+                            progressBar.classList.add('medium');
+                        } else {
+                            progressBar.classList.remove('medium');
+                            progressBar.classList.add('high');
+                        }
+
+                        if (step >= 5) {
+                            clearInterval(interval);
+                            
+                            // 1. Simulate final result
+                            const simulatedSpeed = (Math.random() * 500) + 300; 
+                            
+                            // 2. Final Status Update
+                            isNetworkReady = true; 
+                            networkStatus.classList.remove('pending');
+                            networkStatus.classList.add('success');
+                            
+                            // Re-insert the status icon and update the text
+                            networkStatus.innerHTML = networkStatus.querySelector('.status-icon').outerHTML + `Network Speed: **${simulatedSpeed.toFixed(2)} KB/s** (Passing Client-Side Check)` + networkStatus.querySelector('.progress-bar-container').outerHTML;
+                            networkStatus.querySelector('.status-icon').textContent = '🟢';
+
+                            checkStartButton();
+                        }
+                    }, 500); // 5 steps over 2.5 seconds
+                }
+                // ---------------------------------------------
+
+                async function performDeepFaceCheck() {
+                    if (!isCameraReady || videoElementPreCheck.readyState < 2) {
+                        updateStatus(faceStatus, false, 'Face Detection: Waiting for active camera stream...');
+                        isFaceDetected = false;
+                        checkStartButton();
+                        return;
+                    }
+                    
+                    canvas.width = videoElementPreCheck.videoWidth;
+                    canvas.height = videoElementPreCheck.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(videoElementPreCheck, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                    updateStatus(faceStatus, false, 'Face Detection: Sending image to server...');
+                    faceStatus.classList.remove('error');
+                    faceStatus.classList.add('pending');
+
+                    try {
+                        const response = await fetch(checkFaceApiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ image_data: imageData, is_pre_check: true })
+                        });
+                        const result = await response.json();
+                        if (result.success && result.face_detected) {
+                            updateStatus(faceStatus, true, 'Face Detected! You are ready.');
+                            isFaceDetected = true;
+                        } else {
+                            updateStatus(faceStatus, false, 'Face Detection: ' + result.message);
+                            isFaceDetected = false;
+                        }
+                    } catch (error) {
+                        updateStatus(faceStatus, false, 'Face Detection: Server communication failed.');
+                        isFaceDetected = false;
+                    }
+                    checkStartButton();
+                }
+
+                function checkDevices() {
+                    updateStatus(cameraStatus, false, 'Camera Status: Testing...');
+                    updateStatus(micStatus, false, 'Microphone Status: Testing...');
+
+                    if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+                    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                        .then(function(stream) {
+                            currentStream = stream;
+                            isCameraReady = stream.getVideoTracks().length > 0;
+                            isMicReady = stream.getAudioTracks().length > 0;
+                            if (isCameraReady) {
+                                videoElementPreCheck.srcObject = stream;
+                                updateStatus(cameraStatus, true, 'Camera Status: Detected and Active');
+                                videoElementPreCheck.addEventListener('play', () => {
+                                    if (faceCheckInterval) clearInterval(faceCheckInterval);
+                                    faceCheckInterval = setInterval(performDeepFaceCheck, 3000); 
+                                }, { once: true });
+                            } else {
+                                updateStatus(cameraStatus, false, 'Camera Status: Not Detected or Blocked');
+                                updateStatus(faceStatus, false, 'Face Detection: Requires active camera.');
+                                isFaceDetected = false;
+                                checkStartButton();
+                                stream.getTracks().forEach(track => track.stop()); 
+                            }
+                            if (isMicReady) {
+                                updateStatus(micStatus, true, 'Microphone Status: Detected and Active');
+                            } else {
+                                updateStatus(micStatus, false, 'Microphone Status: Not Detected or Blocked');
+                                checkStartButton();
+                            }
+                        })
+                        .catch(function(err) {
+                            updateStatus(cameraStatus, false, 'Camera Access Denied or Device Not Found.');
+                            updateStatus(micStatus, false, 'Microphone Access Denied or Device Not Found.');
+                            updateStatus(faceStatus, false, 'Face Detection: Requires camera access.');
+                            isCameraReady = false;
+                            isMicReady = false;
+                            isFaceDetected = false;
+                            checkStartButton();
+                        });
+                }
+                
+                checkDevices();
+                checkNetworkSpeed();
+
+                // Handle Start Button Click (MODIFIED LOGIC: Redirect to Instructions)
+                startButton.addEventListener('click', async function() {
+                    // 1. Stop pre-check monitoring
+                    if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
+                    if (faceCheckInterval) { clearInterval(faceCheckInterval); }
+                    
+                    // 2. Redirect to Instructions Page 
+                    window.location.href = "{{ url_for('exam_instructions', exam_id=exam_id) }}";
+                });
+            }
+            // End of Pre-Check Logic
+
+
+            // =======================================================
+            // 3. INSTRUCTIONS LOGIC (For instructions_view) 
+            // =======================================================
+            if (isInstructionsView && startExamFinalBtn) {
+                startExamFinalBtn.addEventListener('click', function() {
+                    this.disabled = true;
+                    this.textContent = 'Starting Exam... Redirecting.';
+
+                    // Redirect to the exam view, which will immediately show the fullscreen modal
+                    window.location.href = "{{ url_for('start_exam', exam_id=exam_id) }}";
+                });
+            }
+            
+            // =======================================================
+            // 4. GLOBAL CLEANUP
+            // =======================================================
+            window.addEventListener('beforeunload', () => {
+                if (currentStream && !isExamActive) { 
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                if (faceCheckInterval) {
+                    clearInterval(faceCheckInterval);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

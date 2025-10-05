@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal</title>
+    <style>
+        /* General Styles */
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; flex-direction: column; }
+        .wrapper { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 95%; max-width: 900px; margin: 20px auto; }
+        h2 { text-align: center; color: #007bff; margin-bottom: 20px; }
+        
+        /* Form/Input Styles */
+        input[type="text"], input[type="password"], input[type="email"], input[type="date"], textarea, select { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        
+        /* Specific input styles for file upload to prevent width issues */
+        input[type="file"] { 
+            border: 1px solid #ccc; 
+            padding: 8px 10px; 
+            background-color: #f9f9f9;
+        }
+
+        button, .action-link { 
+            background-color: #007bff; 
+            color: white; 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            width: 100%; 
+            font-size: 16px; 
+            margin-top: 10px; 
+            transition: background-color 0.3s ease;
+            display: block; /* Make action links act like buttons */
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .apply-btn { background-color: #28a745; width: auto; padding: 8px 15px; margin: 0; display: inline-block; text-decoration: none; font-size: 14px; }
+        .applied-btn { background-color: #6c757d; width: auto; padding: 8px 15px; cursor: not-allowed; margin: 0; display: inline-block; text-decoration: none; font-size: 14px; }
+        .test-btn { background-color: #ff9800; width: auto; padding: 8px 15px; margin: 0; display: inline-block; text-decoration: none; font-size: 14px; }
+
+        /* Flash Messages */
+        .flash { padding: 10px; margin: 10px auto; border-radius: 4px; text-align: center; max-width: 600px; }
+        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .flash.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+        /* Tables and Navigation */
+        .top-nav { list-style: none; padding: 0; display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 10px;}
+        .top-nav a { text-decoration: none; padding: 8px 15px; border-radius: 4px; color: white; transition: background-color 0.3s; }
+        .top-nav .all-jobs-link { background-color: #007bff; }
+        .top-nav .applied-jobs-link { background-color: #ffc107; color: #333; }
+        .top-nav .logout-link { background-color: #dc3545; }
+
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .data-table th { background-color: #f2f2f2; color: #333; }
+        .data-table tr:nth-child(even){ background-color: #f9f9f9; }
+        
+        /* Login/Registration Tabs */
+        .login-container, .register-container { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 6px; }
+        .tab-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .tab-buttons button { width: auto; padding: 10px 20px; }
+        
+        /* Modal Styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 100; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; 
+            padding: 30px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-btn:hover,
+        .close-btn:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+    </style>
+    <script>
+        // JavaScript to manage the Login/Registration tabs and Modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const modal = document.getElementById("applicationModal");
+            const closeBtn = document.getElementsByClassName("close-btn")[0];
+            
+            // Set initial visibility based on URL hash or a default
+            const initialTab = window.location.hash.substring(1) || 'login';
+
+            if (loginForm && registerForm) {
+                if (initialTab === 'register') {
+                    loginForm.style.display = 'none';
+                    registerForm.style.display = 'block';
+                } else {
+                    loginForm.style.display = 'block';
+                    registerForm.style.display = 'none';
+                }
+            }
+
+
+            window.showTab = (tabName) => {
+                if (loginForm && registerForm) {
+                    if (tabName === 'login') {
+                        loginForm.style.display = 'block';
+                        registerForm.style.display = 'none';
+                    } else if (tabName === 'register') {
+                        loginForm.style.display = 'none';
+                        registerForm.style.display = 'block';
+                    }
+                    window.location.hash = tabName; // Update URL hash
+                }
+            };
+
+            // Modal Functions
+            window.openModal = (applicationId, jobTitle) => {
+                document.getElementById('modalApplicationId').value = applicationId;
+                document.getElementById('modalJobTitle').innerText = jobTitle;
+                modal.style.display = "block";
+            }
+
+            window.closeModal = () => {
+                modal.style.display = "none";
+            }
+
+            if (closeBtn) {
+                closeBtn.onclick = window.closeModal;
+            }
+
+            window.onclick = (event) => {
+                if (event.target == modal) {
+                    window.closeModal();
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="wrapper">
+
+    {% if student_dashboard_view %}
+        <ul class="top-nav">
+            <li><a href="{{ url_for('student_test_dashboard') }}" class="all-jobs-link">All Job Applications</a></li>
+            <li><a href="{{ url_for('applied_jobs') }}" class="applied-jobs-link">Applied Jobs</a></li>
+            <li><a href="{{ url_for('student_logout') }}" class="logout-link">Logout ({{ session.student_email }})</a></li>
+        </ul>
+        
+        {% if applied_jobs_view %}
+            <h2>Your Applied Job Applications</h2>
+            <p>Review the jobs you've applied for and check for test invitations.</p>
+            {% if applied_jobs_details %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Job Title & Details</th>
+                            <th>College</th>
+                            <th>CGPA</th>
+                            <th>Exam Assigned?</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in applied_jobs_details %}
+                        <tr>
+                            <td>
+                                <strong>{{ job.jobTitle }}</strong>
+                                <p style="font-size: 0.8em; margin: 5px 0 0;">Applied on: {{ job.application_details.applied_at }}</p>
+                                <p style="font-size: 0.8em; margin: 0; color: #007bff;">
+                                    Resume: <a href="{{ url_for('mock_download_resume', file_id=job.application_details.file_id) }}" target="_blank">Download Resume (PDF)</a>
+                                </p>
+                            </td>
+                            <td>{{ job.application_details.college }}</td> 
+                            <td>{{ job.application_details.cgpa }}</td> 
+                            <td>
+                                {% if job.exam_assigned == 'Yes' %}
+                                    <span style="color: green; font-weight: bold;">Yes</span>
+                                {% else %}
+                                    <span style="color: orange;">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if job.exam_assigned == 'Yes' and job.student_exam_id %}
+                                    <a href="{{ url_for('start_test', exam_id=job.student_exam_id) }}" class="test-btn">Start Test</a>
+                                {% else %}
+                                    <button class="applied-btn" disabled>Awaiting Test Invite</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">You have not applied for any jobs yet. Check the "All Job Applications" tab to start applying.</p>
+            {% endif %}
+
+        {% else %}
+            <h2>All Open Job Applications</h2>
+            <p>Click **Apply Now** to fill out your details and submit your application.</p>
+            {% if all_job_postings %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Job Title</th>
+                            <th>Department</th>
+                            <th>Location</th>
+                            <th>Last Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in all_job_postings %}
+                        <tr>
+                            <td><strong>{{ app.jobTitle }}</strong></td>
+                            <td>{{ app.department }}</td>
+                            <td>{{ app.location }}</td>
+                            <td>{{ app.lastDate | default('N/A') }}</td>
+                            <td>
+                                {% if app.is_applied %}
+                                    <button class="applied-btn" disabled>Already Applied</button>
+                                {% else %}
+                                    <button class="apply-btn" onclick="openModal('{{ app.objectId }}', '{{ app.jobTitle }}')">Apply Now</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">No open job applications currently available. Please check back later.</p>
+            {% endif %}
+        {% endif %}
+
+    {% else %}
+        <h2>Welcome to the Student Portal</h2>
+
+        <div class="tab-buttons">
+            <button onclick="showTab('login')" id="login-tab">Login</button>
+            <button onclick="showTab('register')" id="register-tab">Register</button>
+        </div>
+
+        <div id="login-form" class="login-container">
+            <h3>Student Login</h3>
+            <form action="{{ url_for('student_login') }}" method="POST">
+                <label for="email"><b>Email (Username)</b></label>
+                <input type="email" placeholder="Enter Email" name="email" required>
+                <label for="password"><b>Password</b></label>
+                <input type="password" placeholder="Enter Password" name="password" required>
+                <button type="submit">Log In</button>
+            </form>
+        </div>
+
+        <div id="register-form" class="register-container">
+            <h3>Student Registration</h3>
+            <form action="{{ url_for('student_register') }}" method="POST">
+                <label for="name"><b>Full Name</b></label>
+                <input type="text" placeholder="Enter Full Name" name="name" required>
+                <label for="email"><b>Email (Will be your Username)</b></label>
+                <input type="email" placeholder="Enter Email" name="email" required>
+                <label for="password"><b>Password</b></label>
+                <input type="password" placeholder="Create Password" name="password" required>
+                <label for="confirm_password"><b>Confirm Password</b></label>
+                <input type="password" placeholder="Confirm Password" name="confirm_password" required>
+                <button type="submit" style="background-color: #28a745;">Register</button>
+            </form>
+        </div>
+    {% endif %}
+
+    </div>
+    
+    <div id="applicationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3 style="color: #007bff;">Job Application: <span id="modalJobTitle"></span></h3>
+            <p>Please provide the following details and upload your resume to complete your application.</p>
+            
+            <form action="{{ url_for('submit_job_application') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="applicationId" id="modalApplicationId" required>
+
+                <label for="fullName"><b>Full Name</b></label>
+                <input type="text" placeholder="Your Full Name" name="fullName" required>
+
+                <label for="collegeName"><b>College Name</b></label>
+                <input type="text" placeholder="e.g., IIT Bombay" name="collegeName" required>
+
+                <label for="cgpa"><b>Current CGPA/Percentage</b></label>
+                <input type="text" placeholder="e.g., 8.5 or 90%" name="cgpa" required>
+                
+                <label for="resumeFile"><b>Resume (PDF - Max 5MB)</b></label>
+                <input type="file" name="resumeFile" id="resumeFile" accept="application/pdf" required>
+
+                <button type="submit" style="background-color: #28a745;">Submit Application</button>
+                <button type="button" onclick="closeModal()" style="background-color: #6c757d;">Cancel</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
