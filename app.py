@@ -255,52 +255,81 @@ def get_real_exam_results_by_exam_id(exam_id):
         if email:
             results[email] = {
                 'exam_id': exam_id,
-                'score': raw_score,          
-                'total_questions': total,      
-                'percentage': percentage, 
+                'score': raw_score,       
+                'total_questions': total,         
+                'percentage': percentage,   
                 'submission_time': res.get('submissionTime', 'N/A')
             }
             
     return results
 
 
-# --- Exam Termination Functions ---
+def get_terminated_students_by_exam_id(exam_id: str) -> list:
+    """Fetches ALL terminated student records for a specific Exam ID (regardless of isBlocked status).
 
-def get_terminated_students_by_exam_id(exam_id):
-    """Fetches all terminated student records for a specific Exam ID."""
+    Args:
+        exam_id: The unique ID of the exam.
+
+    Returns:
+        A list of ALL termination records (dictionaries) or an empty list on failure.
+    """
     url = f"{BACKENDLESS_DATA_URL}/{BACKENDLESS_TERMINATIONS_TABLE}"
-    # Only fetch active terminations
-    where_clause = f"examId = '{exam_id}' AND is_active = true" 
-    params = {'where': where_clause, 'sortBy': 'terminated_at DESC'}
+    # MODIFIED: Removed the isBlocked filter to fetch ALL records
+    where_clause = f"examId = '{exam_id}'" 
+    
+    # URL parameters for the GET request
+    params = {
+        'where': where_clause, 
+        'sortBy': 'terminationTime DESC' # Sort by terminationTime (string field)
+    }
     headers = {'Content-Type': 'application/json'}
+    
     try:
         response = requests.get(url, headers=headers, params=params)
-        response.raise_for_status() 
+        response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
         return response.json()
     except requests.exceptions.RequestException as e:
         # Diagnostic print to help user debug table connection/existence
-        print(f"Error fetching terminated students for exam {exam_id}")
+        print(f"Error fetching ALL terminated students for exam {exam_id}. Details: {e}")
         if e.response is not None:
              print(f"Backendless API Status: {e.response.status_code}. Response Text: {e.response.text}")
         return []
 
-def remove_termination_status(termination_object_id):
+# --------------------------------------------------------------------------------------
+
+def remove_termination_status(termination_object_id: str) -> bool:
     """
-    Updates an ExamTermination record to inactive, effectively removing the block.
+    Updates an ExamTermination record to inactive (setting isBlocked=false).
+
+    Args:
+        termination_object_id: The unique objectId of the ExamTermination record.
+
+    Returns:
+        True if the update was successful, False otherwise.
     """
     url = f"{BACKENDLESS_DATA_URL}/{BACKENDLESS_TERMINATIONS_TABLE}/{termination_object_id}"
     headers = {'Content-Type': 'application/json'}
+    
+    # Data to update: set to inactive (isBlocked=false)
     update_data = {
-        'is_active': False,
-        'removed_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        'isBlocked': False, # Setting the block flag to False
+        # Note: The schema provided has 'updated' field which will automatically record the time
+        # but if a separate field like 'removed_at' is used, it should be mapped here
+        # 'removed_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S") 
     }
+    
     try:
-        requests.put(url, headers=headers, json=update_data).raise_for_status()
-        return True
-    except requests.exceptions.RequestException as e:
-        print(f"Error removing termination status for ID {termination_object_id}: {e}")
-        return False
+        # Using PUT for updating a specific object by ID
+        response = requests.put(url, headers=headers, json=update_data)
+        response.raise_for_status()  # Check for 4xx/5xx errors
         
+        # Backendless PUT/PATCH returns the updated object. 
+        return True 
+    except requests.exceptions.RequestException as e:
+        print(f"Error removing termination status for ID {termination_object_id}. Details: {e}")
+        if e.response is not None:
+            print(f"Backendless API Status: {e.response.status_code}. Response Text: {e.response.text}")
+        return False
 # --- Core API Functions (Exam/Job Management) ---
 
 def save_multiple_questions(questions_list):
@@ -689,7 +718,7 @@ def send_termination_removal_email(recipient_email, exam_title):
     subject = f"IMPORTANT: Your Exam Access Restored for {exam_title}"
     custom_body = f"""
     <p>We are writing to inform you that the temporary block on your access for the <strong>{exam_title}</strong> exam has been **removed** by the administrator.</p>
-    <p>You may now re-attempt the examination if the testing window is still open. Please ensure compliance with all test rules to avoid further interruptions.</p>
+    <p>You may now re-attempt the examination if the testing window is still open. **Please be extremely careful not to repeat the violation.**</p>
     <p>Contact the support team if you encounter any further issues.</p>
     """
     # Use the existing send_selection_email function (passing 'N/A' for result details)
@@ -776,9 +805,9 @@ def logout():
 def dashboard():
     open_applications, past_applications = get_job_postings_by_status()
     return render_template('admin.html',
-                            dashboard_view=True,
-                            open_applications=open_applications,
-                            past_applications=past_applications)
+                           dashboard_view=True,
+                           open_applications=open_applications,
+                           past_applications=past_applications)
 
 @app.route('/add_application', methods=['GET', 'POST'])
 @login_required
@@ -854,12 +883,12 @@ def manage_application(object_id):
 
 
     return render_template('admin.html',
-                            manage_application_view=True,
-                            application_id=object_id,
-                            application_title=application.get('jobTitle') if application else 'Unknown Job',
-                            applied_students=applied_students,
-                            all_exams_for_job=all_exams_for_job,
-                            latest_exam_id=latest_exam_id)
+                           manage_application_view=True,
+                           application_id=object_id,
+                           application_title=application.get('jobTitle') if application else 'Unknown Job',
+                           applied_students=applied_students,
+                           all_exams_for_job=all_exams_for_job,
+                           latest_exam_id=latest_exam_id)
 
 # --- Exam Logic - Step 1: Get Metadata and Counts ---
 
@@ -901,9 +930,9 @@ def create_exam(object_id):
         return redirect(url_for('enter_questions', application_id=object_id))
 
     return render_template('admin.html',
-                            create_exam_view=True,
-                            application_id=object_id,
-                            exam_subjects=EXAM_SUBJECTS)
+                           create_exam_view=True,
+                           application_id=object_id,
+                           exam_subjects=EXAM_SUBJECTS)
 
 
 # --- Exam Logic - Step 2: Dynamic Question Entry and Save ---
@@ -958,9 +987,9 @@ def enter_questions(application_id):
 
     # GET request: Show the dynamic question entry form
     return render_template('admin.html',
-                            enter_questions_view=True,
-                            application_id=application_id,
-                            exam_data=exam_data)
+                           enter_questions_view=True,
+                           application_id=application_id,
+                           exam_data=exam_data)
 
 
 @app.route('/exam_paper/<exam_id>')
@@ -974,9 +1003,9 @@ def show_exam_paper(exam_id):
         return redirect(url_for('dashboard'))
 
     return render_template('admin.html',
-                            show_exam_paper_view=True,
-                            exam_paper=exam_paper,
-                            application_id=exam_paper.get('applicationId'))
+                           show_exam_paper_view=True,
+                           exam_paper=exam_paper,
+                           application_id=exam_paper.get('applicationId'))
 
 # --- View All Exam Papers Route ---
 
@@ -1032,7 +1061,7 @@ def prepare_email_by_exam_id(exam_id):
     # 1. Generate credentials and default body
     credentials_list = []
     # IMPORTANT: The test link points to the separate exam app, running on port 5001
-    test_link_base = f"https://exam-management-system-1-4zbn.onrender.com/test_login/{exam_id}"
+    test_link_base = f"http://127.0.0.1:5001/test_login/{exam_id}"
 
     for student in applied_students:
         recipient_email = student['applicantEmail']
@@ -1054,11 +1083,11 @@ def prepare_email_by_exam_id(exam_id):
     session['email_send_target_exam_id'] = exam_id # Store the target exam ID for the POST route
 
     return render_template('admin.html',
-                            prepare_email_view=True,
-                            application_id=application_id,
-                            exam_title=exam_title,
-                            credentials_list=credentials_list,
-                            default_email_body=default_email_body)
+                           prepare_email_view=True,
+                           application_id=application_id,
+                           exam_title=exam_title,
+                           credentials_list=credentials_list,
+                           default_email_body=default_email_body)
 
 
 # --- Final Email Sender Route (Step 2 of 2) ---
@@ -1103,8 +1132,8 @@ def send_final_email(object_id):
         
         # Sanity Check: Ensure the exam ID in the creds matches the target_exam_id
         if exam_id_from_session != target_exam_id:
-             email_errors.append(f"Mismatch for {recipient_email}. Skipping.")
-             continue
+              email_errors.append(f"Mismatch for {recipient_email}. Skipping.")
+              continue
 
         # Convert textarea input (which uses \n for newlines) to final HTML structure
         final_custom_html = email_body_html_source.replace('\n', '<br>')
@@ -1170,11 +1199,28 @@ def view_results_by_exam_id(exam_id):
     # --- Fetch real results only for the SPECIFIC EXAM ID ---
     real_results = get_real_exam_results_by_exam_id(exam_id)
     
-    # --- Fetch terminated students for this exam ---
-    terminated_students = get_terminated_students_by_exam_id(exam_id)
-    terminated_map = {t['applicantEmail']: t for t in terminated_students}
+    # --- Fetch ALL terminated students for this exam (Active and Inactive) ---
+    terminated_students_list = get_terminated_students_by_exam_id(exam_id)
     
-    # 2. Merge student data with results
+    # Process the termination list to identify the currently ACTIVE/BLOCKED termination 
+    # to display the "Remove Termination" button only for active blocks.
+    active_termination_map = {}
+    # Also store the full list of terminations grouped by email for displaying the historical view
+    terminated_map = {} 
+    
+    for t in terminated_students_list:
+        email = t['applicantEmail']
+        
+        # Store the latest termination record for each student for status/history
+        if email not in terminated_map or t.get('terminationTime', '') > terminated_map[email].get('terminationTime', ''):
+             terminated_map[email] = t
+
+        # Only store the CURRENTLY ACTIVE termination record for the link/status check
+        if t.get('isBlocked') == True:
+            active_termination_map[email] = t
+        
+    
+    # 2. Merge student data with results (Results-only list for ranking/shortlisting)
     results_with_students = []
     for email, result in real_results.items():
         student_application = applied_student_map.get(email, {})
@@ -1194,10 +1240,10 @@ def view_results_by_exam_id(exam_id):
     # Sort by percentage (highest first)
     results_with_students.sort(key=lambda x: x.get('percentage', 0) if x.get('percentage') != 'N/A' else -1, reverse=True)
 
-    # Assign rank based on overall score (before filtering)
+    # Assign rank based on overall score
     for i, student in enumerate(results_with_students):
         student['rank'] = i + 1
-        
+    
     # Filter/Shortlisting Logic (applied to results only)
     min_percent = int(request.args.get('min_percent', 0))
     top_n = int(request.args.get('top_n', 0))
@@ -1215,9 +1261,9 @@ def view_results_by_exam_id(exam_id):
     # Determine the set of selected emails
     selected_emails = {s['applicantEmail'] for s in filtered_list}
     
-    # Final combined list for display (Results + Terminated)
-    emails_with_results = set(real_results.keys())
-    all_display_emails = emails_with_results | set(terminated_map.keys())
+    # Final combined list for display: Students with a submitted result, OR an active termination.
+    all_display_emails = set(applied_student_map.keys()) | set(active_termination_map.keys()) | set(real_results.keys())
+    
     rank_map = {r['applicantEmail']: r['rank'] for r in results_with_students}
     
     final_display_list = []
@@ -1225,33 +1271,49 @@ def view_results_by_exam_id(exam_id):
     for email in all_display_emails:
         student_application = applied_student_map.get(email, {})
         exam_result = real_results.get(email, {})
-        termination_record = terminated_map.get(email)
+        # Use the *active* termination map for status and link
+        active_termination_record = active_termination_map.get(email)
         
+        # Only display the entry if they have a result OR an active termination record.
+        if not exam_result and not active_termination_record:
+            continue
+            
         display_data = {
             'applicantEmail': email,
             'applicantName': student_application.get('applicantName', 'N/A'),
             'applied_at': student_application.get('applied_at', 'N/A'),
-            'is_terminated': bool(termination_record),
-            'termination_id': termination_record.get('objectId') if termination_record else None,
-            'termination_reason': termination_record.get('reason') if termination_record else 'N/A',
+            'is_terminated': bool(active_termination_record),
+            # This objectId is CRUCIAL for the removal action link
+            'termination_id': active_termination_record.get('objectId') if active_termination_record else None, 
+            'termination_reason': active_termination_record.get('terminationReason') if active_termination_record else 'N/A',
+            # Percentage is N/A if no result found.
             'percentage': exam_result.get('percentage', 'N/A'),
             'rank': rank_map.get(email, 'N/A'),
-            'shortlisted': email in selected_emails and email in emails_with_results,
+            # Only count as shortlisted if they submitted results AND passed the filter
+            'shortlisted': email in selected_emails and email in real_results,
         }
         final_display_list.append(display_data)
 
-    # Sort the final list
-    final_display_list.sort(key=lambda x: (
-        x['is_terminated'], 
-        x['percentage'] if x['percentage'] != 'N/A' else -1, 
-        ), reverse=True)
+    # --- CORRECTED SORTING LOGIC ---
+    # Sort the final list to show non-terminated students first, and then by score descending.
+    def custom_sort_key(x):
+        is_terminated = x['is_terminated']
+        # Convert N/A to -1 so it's always lower than a valid score (0-100)
+        score = x['percentage'] if x['percentage'] != 'N/A' else -1
+        
+        # Priority 1: Terminated students go to the end (higher value means later)
+        # Priority 2: Score (needs to be negated for descending sort)
+        return (is_terminated, -score)
+
+    final_display_list.sort(key=custom_sort_key)
+    # --- END CORRECTED SORTING LOGIC ---
 
     # Apply the 'show=terminated' filter if present in URL
     show_mode = request.args.get('show')
     is_terminated_view = False
     
     if show_mode == 'terminated':
-        # ONLY show terminated students (this addresses the user's specific request)
+        # ONLY show currently ACTIVE/BLOCKED terminated students (for the main action view)
         results_list_for_template = [s for s in final_display_list if s.get('is_terminated')]
         is_terminated_view = True
         
@@ -1261,25 +1323,45 @@ def view_results_by_exam_id(exam_id):
         results_list_for_template = final_display_list
         is_terminated_view = False
 
+    # Store list of ALL termination records for the dedicated 'All Terminations' view
+    # This list includes all historical termination records (active or inactive)
+    all_terminations_for_view = []
+    for t in terminated_students_list:
+        email = t['applicantEmail']
+        student_application = applied_student_map.get(email, {})
+        
+        all_terminations_for_view.append({
+            'applicantEmail': email,
+            'applicantName': student_application.get('applicantName', 'N/A'),
+            'termination_id': t['objectId'],
+            'termination_reason': t.get('terminationReason'),
+            'termination_time': t.get('terminationTime'),
+            'is_blocked': t.get('isBlocked', False) # Show the DB value (True/False)
+        })
+    
+    # Sort by time descending
+    all_terminations_for_view.sort(key=lambda x: x.get('termination_time', ''), reverse=True)
+
 
     # Store list of *all submitted results* (with shortlisting status) for email preparation
     for student in results_with_students:
-        student['shortlisted'] = student['applicantEmail'] in selected_emails 
+        student['shortlisted'] = student['applicantEmail'] in selected_emails
         
     session['results_session_data'] = json.dumps(results_with_students)
     session['results_email_target_exam_id'] = exam_id # Store target exam ID
 
     return render_template('admin.html',
-                            view_results_view=True,
-                            application_id=application_id,
-                            exam_id=exam_id, 
-                            application_title=application.get('jobTitle'),
-                            exam_title=exam_paper.get('examTitle', 'Assessment Results'), 
-                            results_list=results_list_for_template, 
-                            min_percent_filter=min_percent,
-                            top_n_filter=top_n,
-                            is_terminated_view=is_terminated_view
-                            )
+                           view_results_view=True,
+                           application_id=application_id,
+                           exam_id=exam_id, 
+                           application_title=application.get('jobTitle'),
+                           exam_title=exam_paper.get('examTitle', 'Assessment Results'), 
+                           results_list=results_list_for_template, 
+                           all_terminations_list=all_terminations_for_view, # NEW LIST
+                           min_percent_filter=min_percent,
+                           top_n_filter=top_n,
+                           is_terminated_view=is_terminated_view
+                           )
 
 # --- NEW ROUTE: Remove Termination and Send Email ---
 @app.route('/remove_termination/<exam_id>/<termination_object_id>/<email>')
@@ -1293,7 +1375,6 @@ def remove_termination(exam_id, termination_object_id, email):
         flash("Exam details not found.", 'error')
         return redirect(url_for('view_all_exams'))
 
-    application_id = exam_paper['applicationId']
     exam_title = exam_paper.get('examTitle', 'Online Assessment')
 
     if remove_termination_status(termination_object_id):
@@ -1301,12 +1382,13 @@ def remove_termination(exam_id, termination_object_id, email):
         if send_termination_removal_email(email, exam_title):
             flash(f"Termination removed for {email}. **A restoration email has been automatically sent.**", 'success')
         else:
+            # Although the DB is updated, the admin is warned about the email failure
             flash(f"Termination removed for {email}, but the restoration email FAILED to send. Check SMTP settings.", 'warning')
             
     else:
         flash("Failed to update termination status in the database.", 'error')
         
-    # Redirect back to the terminated student view
+    # Redirect back to the view showing all terminations, or the default results view
     return redirect(url_for('view_results_by_exam_id', exam_id=exam_id, show='terminated'))
 
 
@@ -1341,14 +1423,14 @@ def prepare_results_email(exam_id):
     """
 
     return render_template('admin.html',
-                            prepare_results_email_view=True,
-                            application_id=application_id,
-                            exam_id=exam_id, # Pass exam_id to template
-                            exam_title=exam_title,
-                            selected_count=sum(1 for r in combined_results if r.get('shortlisted')),
-                            rejected_count=sum(1 for r in combined_results if not r.get('shortlisted')),
-                            default_selected_body=selected_body,
-                            default_rejected_body=rejected_body)
+                           prepare_results_email_view=True,
+                           application_id=application_id,
+                           exam_id=exam_id, # Pass exam_id to template
+                           exam_title=exam_title,
+                           selected_count=sum(1 for r in combined_results if r.get('shortlisted')),
+                           rejected_count=sum(1 for r in combined_results if not r.get('shortlisted')),
+                           default_selected_body=selected_body,
+                           default_rejected_body=rejected_body)
 
 @app.route('/send_final_results_email_by_exam/<exam_id>', methods=['POST'])
 @login_required
@@ -1463,7 +1545,7 @@ def student_register():
         flash(f"Registration failed: {result['error']}", 'error')
         return redirect(url_for('student_portal'))
     
-    # Successful registration via Backendless Users table
+    # Successful registration via Backendless Users Table
     flash('Account successfully registered! You can now log in.', 'success')
     return redirect(url_for('student_portal'))
 
@@ -1708,6 +1790,7 @@ def student_logout():
     return redirect(url_for('student_portal'))
 
 
+
 if __name__ == '__main__':
     if not EMAIL_USER or not EMAIL_PASS:
         print("\n--- WARNING: EMAIL CONFIGURATION ---")
@@ -1718,6 +1801,7 @@ if __name__ == '__main__':
     # Render requires binding to the provided PORT, not default 5000
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
 
