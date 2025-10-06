@@ -255,9 +255,9 @@ def get_real_exam_results_by_exam_id(exam_id):
         if email:
             results[email] = {
                 'exam_id': exam_id,
-                'score': raw_score,       
-                'total_questions': total,         
-                'percentage': percentage,   
+                'score': raw_score,        
+                'total_questions': total,          
+                'percentage': percentage,    
                 'submission_time': res.get('submissionTime', 'N/A')
             }
             
@@ -805,9 +805,9 @@ def logout():
 def dashboard():
     open_applications, past_applications = get_job_postings_by_status()
     return render_template('admin.html',
-                           dashboard_view=True,
-                           open_applications=open_applications,
-                           past_applications=past_applications)
+                            dashboard_view=True,
+                            open_applications=open_applications,
+                            past_applications=past_applications)
 
 @app.route('/add_application', methods=['GET', 'POST'])
 @login_required
@@ -883,12 +883,12 @@ def manage_application(object_id):
 
 
     return render_template('admin.html',
-                           manage_application_view=True,
-                           application_id=object_id,
-                           application_title=application.get('jobTitle') if application else 'Unknown Job',
-                           applied_students=applied_students,
-                           all_exams_for_job=all_exams_for_job,
-                           latest_exam_id=latest_exam_id)
+                            manage_application_view=True,
+                            application_id=object_id,
+                            application_title=application.get('jobTitle') if application else 'Unknown Job',
+                            applied_students=applied_students,
+                            all_exams_for_job=all_exams_for_job,
+                            latest_exam_id=latest_exam_id)
 
 # --- Exam Logic - Step 1: Get Metadata and Counts ---
 
@@ -930,9 +930,9 @@ def create_exam(object_id):
         return redirect(url_for('enter_questions', application_id=object_id))
 
     return render_template('admin.html',
-                           create_exam_view=True,
-                           application_id=object_id,
-                           exam_subjects=EXAM_SUBJECTS)
+                            create_exam_view=True,
+                            application_id=object_id,
+                            exam_subjects=EXAM_SUBJECTS)
 
 
 # --- Exam Logic - Step 2: Dynamic Question Entry and Save ---
@@ -987,9 +987,9 @@ def enter_questions(application_id):
 
     # GET request: Show the dynamic question entry form
     return render_template('admin.html',
-                           enter_questions_view=True,
-                           application_id=application_id,
-                           exam_data=exam_data)
+                            enter_questions_view=True,
+                            application_id=application_id,
+                            exam_data=exam_data)
 
 
 @app.route('/exam_paper/<exam_id>')
@@ -1003,9 +1003,9 @@ def show_exam_paper(exam_id):
         return redirect(url_for('dashboard'))
 
     return render_template('admin.html',
-                           show_exam_paper_view=True,
-                           exam_paper=exam_paper,
-                           application_id=exam_paper.get('applicationId'))
+                            show_exam_paper_view=True,
+                            exam_paper=exam_paper,
+                            application_id=exam_paper.get('applicationId'))
 
 # --- View All Exam Papers Route ---
 
@@ -1083,11 +1083,11 @@ def prepare_email_by_exam_id(exam_id):
     session['email_send_target_exam_id'] = exam_id # Store the target exam ID for the POST route
 
     return render_template('admin.html',
-                           prepare_email_view=True,
-                           application_id=application_id,
-                           exam_title=exam_title,
-                           credentials_list=credentials_list,
-                           default_email_body=default_email_body)
+                            prepare_email_view=True,
+                            application_id=application_id,
+                            exam_title=exam_title,
+                            credentials_list=credentials_list,
+                            default_email_body=default_email_body)
 
 
 # --- Final Email Sender Route (Step 2 of 2) ---
@@ -1351,17 +1351,17 @@ def view_results_by_exam_id(exam_id):
     session['results_email_target_exam_id'] = exam_id # Store target exam ID
 
     return render_template('admin.html',
-                           view_results_view=True,
-                           application_id=application_id,
-                           exam_id=exam_id, 
-                           application_title=application.get('jobTitle'),
-                           exam_title=exam_paper.get('examTitle', 'Assessment Results'), 
-                           results_list=results_list_for_template, 
-                           all_terminations_list=all_terminations_for_view, # NEW LIST
-                           min_percent_filter=min_percent,
-                           top_n_filter=top_n,
-                           is_terminated_view=is_terminated_view
-                           )
+                            view_results_view=True,
+                            application_id=application_id,
+                            exam_id=exam_id, 
+                            application_title=application.get('jobTitle'),
+                            exam_title=exam_paper.get('examTitle', 'Assessment Results'), 
+                            results_list=results_list_for_template, 
+                            all_terminations_list=all_terminations_for_view, # NEW LIST
+                            min_percent_filter=min_percent,
+                            top_n_filter=top_n,
+                            is_terminated_view=is_terminated_view
+                            )
 
 # --- NEW ROUTE: Remove Termination and Send Email ---
 @app.route('/remove_termination/<exam_id>/<termination_object_id>/<email>')
@@ -1423,14 +1423,14 @@ def prepare_results_email(exam_id):
     """
 
     return render_template('admin.html',
-                           prepare_results_email_view=True,
-                           application_id=application_id,
-                           exam_id=exam_id, # Pass exam_id to template
-                           exam_title=exam_title,
-                           selected_count=sum(1 for r in combined_results if r.get('shortlisted')),
-                           rejected_count=sum(1 for r in combined_results if not r.get('shortlisted')),
-                           default_selected_body=selected_body,
-                           default_rejected_body=rejected_body)
+                            prepare_results_email_view=True,
+                            application_id=application_id,
+                            exam_id=exam_id, # Pass exam_id to template
+                            exam_title=exam_title,
+                            selected_count=sum(1 for r in combined_results if r.get('shortlisted')),
+                            rejected_count=sum(1 for r in combined_results if not r.get('shortlisted')),
+                            default_selected_body=selected_body,
+                            default_rejected_body=rejected_body)
 
 @app.route('/send_final_results_email_by_exam/<exam_id>', methods=['POST'])
 @login_required
@@ -1801,8 +1801,3 @@ if __name__ == '__main__':
     # Render requires binding to the provided PORT, not default 5000
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
-
-
-
-
-
