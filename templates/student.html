@@ -3,72 +3,669 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Portal</title>
+    <title>Student Portal - Career Center</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* General Styles */
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; flex-direction: column; }
-        .wrapper { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 95%; max-width: 900px; margin: 20px auto; }
-        h2 { text-align: center; color: #007bff; margin-bottom: 20px; }
-        
-        /* Form/Input Styles */
-        input[type="text"], input[type="password"], input[type="email"], input[type="date"], textarea, select { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        
-        /* Specific input styles for file upload to prevent width issues */
-        input[type="file"] { 
-            border: 1px solid #ccc; 
-            padding: 8px 10px; 
-            background-color: #f9f9f9;
+        /* CSS Variables for consistent theming */
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --primary-light: #eef2ff;
+            --secondary: #7209b7;
+            --secondary-light: #f3e8fd;
+            --success: #06d6a0;
+            --success-light: #e6fff3;
+            --info: #4895ef;
+            --info-light: #e8f4ff;
+            --warning: #ff9a3c;
+            --warning-light: #fff4e6;
+            --danger: #e63946;
+            --danger-light: #ffe6e9;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --dark-light: #343a40;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --gray-lighter: #f8f9fa;
+            --border-radius: 10px;
+            --border-radius-sm: 6px;
+            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            --box-shadow-hover: 0 10px 25px rgba(0, 0, 0, 0.12);
+            --box-shadow-card: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s ease;
+            --header-height: 70px;
         }
 
-        button, .action-link { 
-            background-color: #007bff; 
-            color: white; 
-            padding: 12px 20px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            width: 100%; 
-            font-size: 16px; 
-            margin-top: 10px; 
-            transition: background-color 0.3s ease;
-            display: block; /* Make action links act like buttons */
-            text-align: center;
-            text-decoration: none;
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .apply-btn { background-color: #28a745; width: auto; padding: 8px 15px; margin: 0; display: inline-block; text-decoration: none; font-size: 14px; }
-        .applied-btn { background-color: #6c757d; width: auto; padding: 8px 15px; cursor: not-allowed; margin: 0; display: inline-block; text-decoration: none; font-size: 14px; }
-        .test-btn { background-color: #ff9800; width: auto; padding: 8px 15px; margin: 0; display: inline-block; text-decoration: none; font-size: 14px; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header Styles */
+        .header {
+            height: var(--header-height);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-logo {
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--box-shadow);
+            padding: 10px 0;
+            min-width: 180px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            color: var(--dark);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .user-dropdown a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: white;
+            padding: 0 30px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .nav-tab {
+            padding: 15px 25px;
+            text-decoration: none;
+            color: var(--gray);
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-tab:hover {
+            color: var(--primary);
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Content Wrapper */
+        .content-wrapper {
+            padding: 30px;
+        }
+
+        .wrapper {
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 30px;
+            transition: var(--transition);
+        }
+
+        .wrapper:hover {
+            box-shadow: var(--box-shadow-hover);
+        }
+
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title h2 {
+            margin: 0;
+            color: var(--dark);
+            font-weight: 700;
+            font-size: 1.8rem;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Card Styles */
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow-card);
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: var(--transition);
+            border: 1px solid var(--gray-light);
+        }
+
+        .card:hover {
+            box-shadow: var(--box-shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin: 0;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow-card);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: var(--transition);
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-weight: 500;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius-sm);
+            background-color: white;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: var(--transition);
+            text-decoration: none;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(to right, var(--success), #4cc9f0);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(to right, var(--danger), var(--warning));
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(to right, var(--warning), #ff6b6b);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(to right, var(--info), #4cc9f0);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(to right, var(--gray), #6c757d);
+            color: white;
+        }
+
+        .btn-light {
+            background: var(--light);
+            color: var(--dark);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .table th, .table td {
+            border: 1px solid var(--gray-light);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .table th {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 600;
+        }
+
+        .table tr:nth-child(even) {
+            background-color: var(--gray-lighter);
+        }
+
+        .table tr:hover {
+            background-color: var(--primary-light);
+        }
+
+        /* Status Tags */
+        .status-tag {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-success {
+            background-color: var(--success-light);
+            color: #155724;
+        }
+
+        .status-pending {
+            background-color: var(--warning-light);
+            color: #856404;
+        }
+
+        .status-ready {
+            background-color: var(--info-light);
+            color: var(--primary);
+        }
+
+        /* Badge Styles */
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .badge-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .badge-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .badge-warning {
+            background-color: var(--warning);
+            color: white;
+        }
 
         /* Flash Messages */
-        .flash { padding: 10px; margin: 10px auto; border-radius: 4px; text-align: center; max-width: 600px; }
-        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .flash.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .flash {
+            padding: 15px;
+            margin: 15px auto;
+            border-radius: var(--border-radius);
+            text-align: center;
+            max-width: 800px;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
 
-        /* Tables and Navigation */
-        .top-nav { list-style: none; padding: 0; display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #ccc; padding-bottom: 10px;}
-        .top-nav a { text-decoration: none; padding: 8px 15px; border-radius: 4px; color: white; transition: background-color 0.3s; }
-        .top-nav .all-jobs-link { background-color: #007bff; }
-        .top-nav .applied-jobs-link { background-color: #ffc107; color: #333; }
-        .top-nav .logout-link { background-color: #dc3545; }
+        .flash.error {
+            background-color: var(--danger-light);
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
 
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        .data-table th { background-color: #f2f2f2; color: #333; }
-        .data-table tr:nth-child(even){ background-color: #f9f9f9; }
-        
-        /* Login/Registration Tabs */
-        .login-container, .register-container { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 6px; }
-        .tab-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .tab-buttons button { width: auto; padding: 10px 20px; }
-        
+        .flash.success {
+            background-color: var(--success-light);
+            color: #155724;
+            border-left: 4px solid var(--success);
+        }
+
+        .flash.warning {
+            background-color: var(--warning-light);
+            color: #856404;
+            border-left: 4px solid var(--warning);
+        }
+
+        .flash.info {
+            background-color: var(--info-light);
+            color: #0c5460;
+            border-left: 4px solid var(--info);
+        }
+
+        /* Job Cards */
+        .jobs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .job-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--box-shadow-card);
+            transition: var(--transition);
+            border-top: 4px solid var(--primary);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow);
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .job-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin: 0;
+        }
+
+        .job-company {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .job-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .job-description {
+            color: var(--dark);
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .job-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+
+        .job-deadline {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* Login Styles */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+
+        .login-box {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 40px;
+            box-shadow: var(--box-shadow);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h2 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: var(--gray);
+        }
+
+        .login-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--gray-light);
+        }
+
+        .login-tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            background: none;
+            border: none;
+            font-weight: 600;
+            color: var(--gray);
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+        }
+
+        .login-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
         /* Modal Styles */
         .modal {
             display: none; 
             position: fixed; 
-            z-index: 100; 
+            z-index: 1000; 
             left: 0;
             top: 0;
             width: 100%;
@@ -82,247 +679,501 @@
             padding: 30px;
             border: 1px solid #888;
             width: 90%;
-            max-width: 500px;
-            border-radius: 8px;
+            max-width: 600px;
+            border-radius: var(--border-radius);
             position: relative;
+            box-shadow: var(--box-shadow);
         }
         .close-btn {
             color: #aaa;
             float: right;
             font-size: 28px;
             font-weight: bold;
+            cursor: pointer;
         }
         .close-btn:hover,
         .close-btn:focus {
             color: black;
             text-decoration: none;
-            cursor: pointer;
         }
 
-    </style>
-    <script>
-        // JavaScript to manage the Login/Registration tabs and Modal
-        document.addEventListener('DOMContentLoaded', () => {
-            const loginForm = document.getElementById('login-form');
-            const registerForm = document.getElementById('register-form');
-            const modal = document.getElementById("applicationModal");
-            const closeBtn = document.getElementsByClassName("close-btn")[0];
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .content-wrapper {
+                padding: 20px;
+            }
             
-            // Set initial visibility based on URL hash or a default
-            const initialTab = window.location.hash.substring(1) || 'login';
-
-            if (loginForm && registerForm) {
-                if (initialTab === 'register') {
-                    loginForm.style.display = 'none';
-                    registerForm.style.display = 'block';
-                } else {
-                    loginForm.style.display = 'block';
-                    registerForm.style.display = 'none';
-                }
+            .wrapper {
+                padding: 20px;
             }
-
-
-            window.showTab = (tabName) => {
-                if (loginForm && registerForm) {
-                    if (tabName === 'login') {
-                        loginForm.style.display = 'block';
-                        registerForm.style.display = 'none';
-                    } else if (tabName === 'register') {
-                        loginForm.style.display = 'none';
-                        registerForm.style.display = 'block';
-                    }
-                    window.location.hash = tabName; // Update URL hash
-                }
-            };
-
-            // Modal Functions
-            window.openModal = (applicationId, jobTitle) => {
-                document.getElementById('modalApplicationId').value = applicationId;
-                document.getElementById('modalJobTitle').innerText = jobTitle;
-                modal.style.display = "block";
+            
+            .jobs-grid {
+                grid-template-columns: 1fr;
             }
-
-            window.closeModal = () => {
-                modal.style.display = "none";
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
             }
-
-            if (closeBtn) {
-                closeBtn.onclick = window.closeModal;
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
             }
-
-            window.onclick = (event) => {
-                if (event.target == modal) {
-                    window.closeModal();
-                }
+            
+            .nav-tabs {
+                flex-direction: column;
+                padding: 0;
             }
-        });
-    </script>
+            
+            .nav-tab {
+                justify-content: center;
+            }
+        }
+    </style>
 </head>
 <body>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    {% if session.get('student_logged_in') %}
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="header-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div class="header-title">Student Career Portal</div>
+        </div>
+        <div class="header-right">
+            <div class="user-profile" onclick="toggleDropdown()">
+                <div class="user-avatar">{{ session.student_email[0] | upper }}</div>
+                <div class="user-info">
+                    <div class="user-name">{{ session.student_name or session.student_email }}</div>
+                    <div class="user-role">Student</div>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <a href="{{ url_for('student_logout') }}">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
 
-    <div class="wrapper">
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+        <a href="{{ url_for('student_test_dashboard') }}" class="nav-tab {% if not applied_jobs_view %}active{% endif %}">
+            <i class="fas fa-briefcase"></i> All Job Opportunities
+        </a>
+        <a href="{{ url_for('applied_jobs') }}" class="nav-tab {% if applied_jobs_view %}active{% endif %}">
+            <i class="fas fa-file-alt"></i> My Applications
+        </a>
+    </nav>
 
-    {% if student_dashboard_view %}
-        <ul class="top-nav">
-            <li><a href="{{ url_for('student_test_dashboard') }}" class="all-jobs-link">All Job Applications</a></li>
-            <li><a href="{{ url_for('applied_jobs') }}" class="applied-jobs-link">Applied Jobs</a></li>
-            <li><a href="{{ url_for('student_logout') }}" class="logout-link">Logout ({{ session.student_email }})</a></li>
-        </ul>
-        
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         {% if applied_jobs_view %}
-            <h2>Your Applied Job Applications</h2>
-            <p>Review the jobs you've applied for and check for test invitations.</p>
+            <!-- Applied Jobs View -->
+            <div class="page-header">
+                <div class="page-title">
+                    <i class="fas fa-file-alt fa-lg"></i>
+                    <h2>My Job Applications</h2>
+                </div>
+                <div class="page-actions">
+                    <a href="{{ url_for('student_test_dashboard') }}" class="btn btn-light">
+                        <i class="fas fa-arrow-left"></i> Back to Jobs
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(to right, var(--primary), var(--secondary));">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ applied_jobs_details | length }}</div>
+                        <div class="stat-label">Total Applications</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(to right, var(--success), #4cc9f0);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ applied_jobs_details | selectattr('exam_assigned', 'equalto', 'Yes') | list | length }}</div>
+                        <div class="stat-label">Tests Assigned</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(to right, var(--info), #4cc9f0);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ applied_jobs_details | selectattr('exam_assigned', 'equalto', 'No') | list | length }}</div>
+                        <div class="stat-label">Pending Review</div>
+                    </div>
+                </div>
+            </div>
+
             {% if applied_jobs_details %}
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Job Title & Details</th>
-                            <th>College</th>
-                            <th>CGPA</th>
-                            <th>Exam Assigned?</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for job in applied_jobs_details %}
-                        <tr>
-                            <td>
-                                <strong>{{ job.jobTitle }}</strong>
-                                <p style="font-size: 0.8em; margin: 5px 0 0;">Applied on: {{ job.application_details.applied_at }}</p>
-                                <p style="font-size: 0.8em; margin: 0; color: #007bff;">
-                                    Resume: <a href="{{ url_for('mock_download_resume', file_id=job.application_details.file_id) }}" target="_blank">Download Resume (PDF)</a>
-                                </p>
-                            </td>
-                            <td>{{ job.application_details.college }}</td> 
-                            <td>{{ job.application_details.cgpa }}</td> 
-                            <td>
-                                {% if job.exam_assigned == 'Yes' %}
-                                    <span style="color: green; font-weight: bold;">Yes</span>
-                                {% else %}
-                                    <span style="color: orange;">No</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if job.exam_assigned == 'Yes' and job.student_exam_id %}
-                                    <a href="{{ url_for('start_test', exam_id=job.student_exam_id) }}" class="test-btn">Start Test</a>
-                                {% else %}
-                                    <button class="applied-btn" disabled>Awaiting Test Invite</button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-list"></i> Application History
+                        </h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Job Details</th>
+                                    <th>College & CGPA</th>
+                                    <th>Application Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in applied_jobs_details %}
+                                <tr>
+                                    <td>
+                                        <div class="job-title">{{ job.jobTitle }}</div>
+                                        <div class="job-company">{{ job.department }}</div>
+                                        <div style="font-size: 0.85rem; color: var(--gray); margin-top: 5px;">
+                                            <i class="fas fa-map-marker-alt"></i> {{ job.location }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div><strong>{{ job.application_details.college }}</strong></div>
+                                        <div style="color: var(--primary); font-weight: 600;">CGPA: {{ job.application_details.cgpa }}</div>
+                                    </td>
+                                    <td>
+                                        {{ job.application_details.applied_at }}
+                                        <div style="margin-top: 5px;">
+                                            <a href="{{ url_for('mock_download_resume', file_id=job.application_details.file_id) }}" target="_blank" class="btn btn-sm btn-success">
+                                                <i class="fas fa-download"></i> Resume
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if job.exam_assigned == 'Yes' %}
+                                            <span class="status-tag status-ready">
+                                                <i class="fas fa-check-circle"></i> Test Assigned
+                                            </span>
+                                        {% else %}
+                                            <span class="status-tag status-pending">
+                                                <i class="fas fa-clock"></i> Under Review
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.exam_assigned == 'Yes' and job.student_exam_id %}
+                                            <a href="{{ url_for('start_test', exam_id=job.student_exam_id) }}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-play-circle"></i> Start Test
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-secondary btn-sm" disabled>
+                                                <i class="fas fa-hourglass-half"></i> Awaiting Test
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             {% else %}
-                <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">You have not applied for any jobs yet. Check the "All Job Applications" tab to start applying.</p>
+                <div class="card">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-file-alt fa-3x" style="color: var(--gray-light); margin-bottom: 20px;"></i>
+                        <h3 style="color: var(--gray); margin-bottom: 10px;">No Applications Yet</h3>
+                        <p style="color: var(--gray);">You haven't applied for any jobs yet. Browse available opportunities and submit your applications.</p>
+                        <a href="{{ url_for('student_test_dashboard') }}" class="btn btn-primary" style="margin-top: 20px;">
+                            <i class="fas fa-briefcase"></i> Browse Jobs
+                        </a>
+                    </div>
+                </div>
             {% endif %}
 
         {% else %}
-            <h2>All Open Job Applications</h2>
-            <p>Click **Apply Now** to fill out your details and submit your application.</p>
+            <!-- All Jobs View -->
+            <div class="page-header">
+                <div class="page-title">
+                    <i class="fas fa-briefcase fa-lg"></i>
+                    <h2>Available Job Opportunities</h2>
+                </div>
+                <div class="page-actions">
+                    <a href="{{ url_for('applied_jobs') }}" class="btn btn-light">
+                        <i class="fas fa-file-alt"></i> My Applications
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(to right, var(--primary), var(--secondary));">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ all_job_postings | length }}</div>
+                        <div class="stat-label">Open Positions</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(to right, var(--success), #4cc9f0);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ all_job_postings | selectattr('is_applied') | list | length }}</div>
+                        <div class="stat-label">Applied Jobs</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(to right, var(--info), #4cc9f0);">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ all_job_postings | rejectattr('is_applied') | list | length }}</div>
+                        <div class="stat-label">Available to Apply</div>
+                    </div>
+                </div>
+            </div>
+
             {% if all_job_postings %}
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Job Title</th>
-                            <th>Department</th>
-                            <th>Location</th>
-                            <th>Last Date</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for app in all_job_postings %}
-                        <tr>
-                            <td><strong>{{ app.jobTitle }}</strong></td>
-                            <td>{{ app.department }}</td>
-                            <td>{{ app.location }}</td>
-                            <td>{{ app.lastDate | default('N/A') }}</td>
-                            <td>
-                                {% if app.is_applied %}
-                                    <button class="applied-btn" disabled>Already Applied</button>
+                <div class="jobs-grid">
+                    {% for app in all_job_postings %}
+                    <div class="job-card">
+                        <div class="job-header">
+                            <h3 class="job-title">{{ app.jobTitle }}</h3>
+                            {% if app.is_applied %}
+                                <span class="badge badge-success">Applied</span>
+                            {% else %}
+                                <span class="badge badge-primary">Open</span>
+                            {% endif %}
+                        </div>
+                        <div class="job-company">{{ app.department }}</div>
+                        <div class="job-meta">
+                            <div class="job-meta-item">
+                                <i class="fas fa-map-marker-alt"></i> {{ app.location }}
+                            </div>
+                            <div class="job-meta-item">
+                                <i class="fas fa-clock"></i> 
+                                {% if app.lastDate %}
+                                    {{ app.lastDate }}
                                 {% else %}
-                                    <button class="apply-btn" onclick="openModal('{{ app.objectId }}', '{{ app.jobTitle }}')">Apply Now</button>
+                                    Rolling
                                 {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                        <div class="job-description">
+                            {{ app.description | truncate(150) }}
+                        </div>
+                        <div class="job-footer">
+                            <div class="job-deadline">
+                                {% if app.lastDate %}
+                                    Apply by: {{ app.lastDate }}
+                                {% else %}
+                                    Open until filled
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if app.is_applied %}
+                                    <button class="btn btn-secondary btn-sm" disabled>
+                                        <i class="fas fa-check"></i> Applied
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-primary btn-sm" onclick="openModal('{{ app.objectId }}', '{{ app.jobTitle }}')">
+                                        <i class="fas fa-paper-plane"></i> Apply Now
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             {% else %}
-                <p style="text-align: center; padding: 20px; border: 1px dashed #ccc;">No open job applications currently available. Please check back later.</p>
+                <div class="card">
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-briefcase fa-3x" style="color: var(--gray-light); margin-bottom: 20px;"></i>
+                        <h3 style="color: var(--gray); margin-bottom: 10px;">No Job Openings</h3>
+                        <p style="color: var(--gray);">There are currently no open job positions. Please check back later for new opportunities.</p>
+                    </div>
+                </div>
             {% endif %}
         {% endif %}
+    </div>
 
     {% else %}
-        <h2>Welcome to the Student Portal</h2>
+    <!-- Login View -->
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <i class="fas fa-graduation-cap fa-3x" style="color: var(--primary); margin-bottom: 15px;"></i>
+                <h2>Student Career Portal</h2>
+                <p>Access your career opportunities and applications</p>
+            </div>
+            
+            <div class="login-tabs">
+                <button class="login-tab active" id="login-tab" onclick="showTab('login')">Login</button>
+                <button class="login-tab" id="register-tab" onclick="showTab('register')">Register</button>
+            </div>
 
-        <div class="tab-buttons">
-            <button onclick="showTab('login')" id="login-tab">Login</button>
-            <button onclick="showTab('register')" id="register-tab">Register</button>
-        </div>
+            <div id="login-form">
+                <form action="{{ url_for('student_login') }}" method="POST">
+                    <div class="form-group">
+                        <label class="form-label" for="email"><b>Email Address</b></label>
+                        <input type="email" class="form-control" placeholder="Enter your email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password"><b>Password</b></label>
+                        <input type="password" class="form-control" placeholder="Enter your password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Login to Portal
+                    </button>
+                </form>
+            </div>
 
-        <div id="login-form" class="login-container">
-            <h3>Student Login</h3>
-            <form action="{{ url_for('student_login') }}" method="POST">
-                <label for="email"><b>Email (Username)</b></label>
-                <input type="email" placeholder="Enter Email" name="email" required>
-                <label for="password"><b>Password</b></label>
-                <input type="password" placeholder="Enter Password" name="password" required>
-                <button type="submit">Log In</button>
-            </form>
+            <div id="register-form" style="display: none;">
+                <form action="{{ url_for('student_register') }}" method="POST">
+                    <div class="form-group">
+                        <label class="form-label" for="name"><b>Full Name</b></label>
+                        <input type="text" class="form-control" placeholder="Enter your full name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email"><b>Email Address</b></label>
+                        <input type="email" class="form-control" placeholder="Enter your email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password"><b>Password</b></label>
+                        <input type="password" class="form-control" placeholder="Create a password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="confirm_password"><b>Confirm Password</b></label>
+                        <input type="password" class="form-control" placeholder="Confirm your password" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+            </div>
         </div>
-
-        <div id="register-form" class="register-container">
-            <h3>Student Registration</h3>
-            <form action="{{ url_for('student_register') }}" method="POST">
-                <label for="name"><b>Full Name</b></label>
-                <input type="text" placeholder="Enter Full Name" name="name" required>
-                <label for="email"><b>Email (Will be your Username)</b></label>
-                <input type="email" placeholder="Enter Email" name="email" required>
-                <label for="password"><b>Password</b></label>
-                <input type="password" placeholder="Create Password" name="password" required>
-                <label for="confirm_password"><b>Confirm Password</b></label>
-                <input type="password" placeholder="Confirm Password" name="confirm_password" required>
-                <button type="submit" style="background-color: #28a745;">Register</button>
-            </form>
-        </div>
+    </div>
     {% endif %}
 
-    </div>
-    
+    <!-- Application Modal -->
     <div id="applicationModal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h3 style="color: #007bff;">Job Application: <span id="modalJobTitle"></span></h3>
-            <p>Please provide the following details and upload your resume to complete your application.</p>
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3 style="color: var(--primary); margin-bottom: 10px;">
+                <i class="fas fa-paper-plane"></i> Apply for: <span id="modalJobTitle"></span>
+            </h3>
+            <p style="color: var(--gray); margin-bottom: 20px;">Complete your application by providing the details below and uploading your resume.</p>
             
             <form action="{{ url_for('submit_job_application') }}" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="applicationId" id="modalApplicationId" required>
 
-                <label for="fullName"><b>Full Name</b></label>
-                <input type="text" placeholder="Your Full Name" name="fullName" required>
+                <div class="form-group">
+                    <label class="form-label" for="fullName"><b>Full Name</b></label>
+                    <input type="text" class="form-control" placeholder="Your full name" name="fullName" required>
+                </div>
 
-                <label for="collegeName"><b>College Name</b></label>
-                <input type="text" placeholder="e.g., IIT Bombay" name="collegeName" required>
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label class="form-label" for="collegeName"><b>College/University</b></label>
+                            <input type="text" class="form-control" placeholder="e.g., IIT Bombay" name="collegeName" required>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label class="form-label" for="cgpa"><b>CGPA/Percentage</b></label>
+                            <input type="text" class="form-control" placeholder="e.g., 8.5 or 90%" name="cgpa" required>
+                        </div>
+                    </div>
+                </div>
 
-                <label for="cgpa"><b>Current CGPA/Percentage</b></label>
-                <input type="text" placeholder="e.g., 8.5 or 90%" name="cgpa" required>
-                
-                <label for="resumeFile"><b>Resume (PDF - Max 5MB)</b></label>
-                <input type="file" name="resumeFile" id="resumeFile" accept="application/pdf" required>
+                <div class="form-group">
+                    <label class="form-label" for="resumeFile"><b>Upload Resume (PDF only, max 5MB)</b></label>
+                    <input type="file" class="form-control" name="resumeFile" id="resumeFile" accept="application/pdf" required>
+                    <small style="color: var(--gray);">Please upload your resume in PDF format</small>
+                </div>
 
-                <button type="submit" style="background-color: #28a745;">Submit Application</button>
-                <button type="button" onclick="closeModal()" style="background-color: #6c757d;">Cancel</button>
+                <div style="display: flex; gap: 10px; margin-top: 25px;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-paper-plane"></i> Submit Application
+                    </button>
+                    <button type="button" class="btn btn-light" onclick="closeModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
             </form>
         </div>
     </div>
+
+    <script>
+        // Toggle user dropdown
+        function toggleDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('userDropdown');
+            const profile = document.querySelector('.user-profile');
+            if (!profile.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Tab management for login/register
+        function showTab(tabName) {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            
+            if (tabName === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+            } else if (tabName === 'register') {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                loginTab.classList.remove('active');
+                registerTab.classList.add('active');
+            }
+        }
+
+        // Modal Functions
+        function openModal(applicationId, jobTitle) {
+            document.getElementById('modalApplicationId').value = applicationId;
+            document.getElementById('modalJobTitle').innerText = jobTitle;
+            document.getElementById('applicationModal').style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById('applicationModal').style.display = "none";
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('applicationModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
 </body>
 </html>
