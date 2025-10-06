@@ -38,7 +38,7 @@ BACKENDLESS_EXAM_TABLE = 'Exams'
 BACKENDLESS_QUESTION_TABLE = 'Questions'
 BACKENDLESS_LOGIN_TABLE = 'exam_login'
 BACKENDLESS_RESULT_TABLE = 'ExamResults'
-BACKENDLESS_TERMINATION_TABLE = 'ExamTerminations' # NEW: Table to store termination events
+BACKENDLESS_TERMINATION_TABLE = 'ExamTerminations' # Table to store termination events
 
 # --- Database Utility Functions ---
 
@@ -122,21 +122,43 @@ def check_if_result_exists(email, exam_id):
     except requests.exceptions.RequestException:
         return False
 
+# ----------------------------------------------------
+# *** MODIFIED: Function to check for active termination with isBlocked=True filter ***
+# ----------------------------------------------------
+def check_active_termination(email, exam_id):
+    """Checks if a student has an ACTIVE termination record (isBlocked=True) for this exam."""
+    url = f"{BACKENDLESS_BASE_URL}/{BACKENDLESS_TERMINATION_TABLE}"
+    
+    # MODIFIED: Filter explicitly by isBlocked=True
+    where_clause = f"applicantEmail = '{email}' AND examId = '{exam_id}' AND isBlocked = true" 
+    params = {'where': where_clause, 'pageSize': 1}
+    headers = {'Content-Type': 'application/json'}
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        # If the query returns any result where isBlocked is True, the user is blocked
+        return len(response.json()) > 0
+    except requests.exceptions.RequestException as e:
+        print(f"DB Error: Failed to check for active termination: {e}")
+        return False
+
+# ---------------------------------------------------
+# *** UPDATED: Function to record termination ***
+# ---------------------------------------------------
 def terminate_exam(email, exam_id, violation_type, current_score):
-    """Saves the exam termination event to Backendless and attempts to create the table if needed."""
+    """Saves the exam termination event to Backendless, setting isBlocked=True."""
     url = f"https://api.backendless.com/{BACKENDLESS_APP_ID}/{BACKENDLESS_REST_API_KEY}/data/{BACKENDLESS_TERMINATION_TABLE}"
     headers = {'Content-Type': 'application/json'}
     data = {
         'applicantEmail': email,
         'examId': exam_id,
         'terminationReason': violation_type,
-        # Convert raw score (number of answered questions) to be stored here.
-        'currentScore': float(current_score), 
-        'terminationTime': datetime.now(timezone.utc).isoformat()
+        'currentScore': float(current_score),
+        'terminationTime': datetime.now(timezone.utc).isoformat(),
+        # Add a flag indicating this is a final, blocking termination
+        'isBlocked': True 
     }
     
-    # Backendless automatically creates the table schema based on the first POST request
-    # if the table doesn't exist, provided the API key has the necessary permissions.
     try:
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()
@@ -163,6 +185,14 @@ def student_exam_required(f):
             session.pop('student_email', None)
             session.pop('exam_id', None)
             return redirect(url_for('test_login', exam_id=exam_id))
+        
+        # *** Secondary check: Block access if isBlocked is True ***
+        email = session.get('student_email')
+        if check_active_termination(email, exam_id):
+            flash('Access Denied: Your exam access has been terminated.', 'error')
+            # Clear session to ensure they cannot proceed
+            session.clear() 
+            return redirect(url_for('exam_finished'))
 
         return f(*args, **kwargs)
     return decorated_function
@@ -198,6 +228,15 @@ def test_login(exam_id):
             flash('All fields are required.', 'error')
             return render_template('exam.html', test_login_view=True, exam_id=login_exam_id if login_exam_id else exam_id, pre_fill_email=email)
 
+        # ----------------------------------------------------
+        # *** CORE BLOCKING LOGIC (Using the modified function) ***
+        # ----------------------------------------------------
+        if check_active_termination(email, login_exam_id):
+            flash('Access Denied: Your exam access has been permanently terminated due to a policy violation.', 'error')
+            # The user cannot log in, redirect them to a final page
+            return redirect(url_for('exam_finished'))
+        # ----------------------------------------------------
+        
         # 1. Fetch credential
         credential = get_login_credential(email, login_exam_id)
 
@@ -273,7 +312,7 @@ def pre_exam_check(exam_id):
 @student_exam_required
 def exam_instructions(exam_id):
     """
-    NEW: Intermediate page to show instructions and explicitly prompt for fullscreen.
+    Intermediate page to show instructions and explicitly prompt for fullscreen.
     (STEP 3: INSTRUCTIONS & FULLSCREEN PROMPT)
     """
     email = session.get('student_email')
@@ -342,12 +381,12 @@ def api_report_violation():
 
     return jsonify({'success': True, 'message': f'Exam terminated due to {violation_type}.'}), 200
 
-# --- UPDATED API ROUTE FOR DEEPFACE PROCESSING ---
+# --- UPDATED API ROUTE FOR DEEPFACE PROCESSING (With Improved Messaging) ---
 @app.route('/api/check_face', methods=['POST'])
 def api_check_face():
     """
     Receives base64 image data and checks face presence.
-    Implements failure countdown and termination logic.
+    Implements failure countdown and termination logic, with concise messaging.
     """
     if not session.get('student_logged_in'):
         return jsonify({'success': False, 'message': 'Authentication required.'}), 401
@@ -366,16 +405,17 @@ def api_check_face():
     # Default response values
     face_detected = True
     multiple_faces = False
-    message = "OK: Face detected successfully."
+    message = "Face Detected" # Simple success message
     should_terminate = False
     violation_type = None
 
     is_pre_check = data.get('is_pre_check', False) # Used to distinguish between pre-check and in-exam
 
     if not DEEPFACE_AVAILABLE:
-        # Mock success for network check (and pre-check)
+        # Mock success for pre-check; for proctoring phase, only project/display warnings
         face_detected = True
-        message = 'DeepFace not installed (MOCK SUCCESS).'
+        multiple_faces = False
+        message = 'Proctoring ON (DeepFace Mock)' # Simple ON message for mock mode
         # In mock mode, we skip all critical proctoring logic for in-exam phase
         session['no_face_count'] = 0
         session['multiple_face_count'] = 0
@@ -385,7 +425,8 @@ def api_check_face():
                         'message': message, 
                         'terminate': False,
                         'no_face_count': 0,
-                        'multiple_face_count': 0}), 200
+                        'multiple_face_count': 0,
+                        'no_face_warning_count': 0}), 200
 
     if not base64_img:
         return jsonify({'success': False, 'message': 'No image data received.'}), 400
@@ -401,29 +442,28 @@ def api_check_face():
             detector_backend='opencv', 
             enforce_detection=False 
         )
-        # Assuming a confidence threshold for a valid face detection
+        # Using a default high confidence threshold for a valid face detection
         detected_faces_count = len([d for d in detections if d.get('confidence', 0) > 0.8])
 
         face_detected = detected_faces_count == 1
         multiple_faces = detected_faces_count > 1
 
     except Exception as e:
-        print(f"DeepFace processing failed: {e}")
         # Server-side failure is treated as a face-not-detected issue 
         face_detected = False
         multiple_faces = False
         
     
     
-# 2. Apply Termination Logic (Only during the actual exam, not the pre-check)
+    # 2. Apply Termination Logic (Only during the actual exam, not the pre-check)
     if not is_pre_check:
         
         if face_detected:
             # Success: Reset consecutive counters
             session['no_face_count'] = 0
             session['multiple_face_count'] = 0
-            # NOTE: no_face_warning_count is NOT reset here; it tracks cumulative warnings.
-        
+            # Message is already set to "Face Detected"
+            
         elif multiple_faces:
             # Multiple faces detected: Severe Violation (Existing Logic)
             multiple_face_count += 1
@@ -431,9 +471,11 @@ def api_check_face():
             if multiple_face_count >= 2:
                 should_terminate = True
                 violation_type = "MULTIPLE_FACES_DETECTED"
-                message = "CRITICAL VIOLATION: Multiple faces detected twice. Terminating exam."
+                # Simple message indicating termination
+                message = "EXAM TERMINATED: Multiple faces detected twice." 
             else:
-                message = f"VIOLATION: Multiple faces detected. Next offense terminates exam."
+                # Concise message for warning
+                message = f"WARNING: Multiple faces detected (1/2 checks). Next failure terminates exam."
                 
             session['multiple_face_count'] = multiple_face_count
             session['no_face_count'] = 0 # Reset other counter
@@ -448,7 +490,8 @@ def api_check_face():
             if no_face_count >= 5:
                 should_terminate = True
                 violation_type = "NO_FACE_DETECTED_FOR_5_CHECKS"
-                message = "CRITICAL VIOLATION: Face not detected for 5 consecutive checks. Terminating exam."
+                # Simple message indicating termination
+                message = "EXAM TERMINATED: Face lost for 5 seconds."
             
             # --- Accumulated Warning Logic ---
             elif no_face_count == 1:
@@ -458,14 +501,19 @@ def api_check_face():
                 if no_face_warning_count >= 5:
                     should_terminate = True
                     violation_type = "NO_FACE_DETECTED_5_WARNINGS"
-                    message = "CRITICAL VIOLATION: Face not detected 5 times. Terminating exam."
+                    # Simple message indicating termination
+                    message = "EXAM TERMINATED: 5 Total Warnings Reached."
                 else:
-                    # Not terminated yet, provide a warning with remaining attempts
-                    message = f"WARNING: Face not detected. Violation {no_face_warning_count} of 5 total warnings. Must re-appear within {5 - no_face_count} seconds."
+                    # Concise warning message showing remaining time/counts
+                    remaining_consecutive = 5 - no_face_count
+                    remaining_cumulative = 5 - no_face_warning_count
+                    message = f"WARNING: Face lost! Total Warnings: {no_face_warning_count}/5. Re-appear in {remaining_consecutive}s!"
             
             else: # no_face_count is 2, 3, or 4 (consecutive checks)
-                # Not terminated yet, provide a warning with remaining time
-                message = f"WARNING: Face not detected. Violation {no_face_warning_count} of 5 total warnings. Must re-appear within {5 - no_face_count} seconds."
+                # Concise warning message showing remaining time
+                remaining_consecutive = 5 - no_face_count
+                remaining_cumulative = 5 - no_face_warning_count
+                message = f"WARNING: Face lost! Total Warnings: {no_face_warning_count}/5. Re-appear in {remaining_consecutive}s!"
 
 
         # Update session data
@@ -487,7 +535,7 @@ def api_check_face():
     return jsonify({
         'success': True, 
         'face_detected': face_detected, 
-        'message': message, 
+        'message': message, # The final, simplified message for the student
         'terminate': should_terminate,
         'no_face_count': session.get('no_face_count', 0),
         'multiple_face_count': session.get('multiple_face_count', 0),
@@ -565,7 +613,7 @@ def submit_exam(exam_id):
         if student_answer and student_answer == correct_ans:
             raw_score += 1
 
-    # 2. Calculate Percentage Score (NEW IMPLEMENTATION)
+    # 2. Calculate Percentage Score
     if total_questions > 0:
         # Calculate percentage, rounding to 2 decimal places
         percentage_score = round((raw_score / total_questions) * 100, 2)
@@ -606,7 +654,6 @@ def exam_finished():
     """Generic route for post-exam messages."""
     return render_template('exam.html', exam_finished_view=True)
 
-
 @app.route('/exam_logout')
 def exam_logout():
     """Logs the student out and clears session data."""
@@ -622,3 +669,4 @@ def exam_logout():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))  # Render sets PORT dynamically
     app.run(host="0.0.0.0", port=port, debug=False)
+
