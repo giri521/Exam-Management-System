@@ -4,49 +4,438 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Online Assessment Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Modern Color Scheme */
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --info: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --white: #ffffff;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
         /* General Styles */
-        body { font-family: Arial, sans-serif; background-color: #e9eef2; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
-        .wrapper { background: #fff; padding: 40px; border-radius: 10px; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); width: 95%; max-width: 800px; margin: 20px auto; }
-        h2 { text-align: center; color: #004a8f; margin-bottom: 30px; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .wrapper {
+            background: var(--white);
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 95%;
+            max-width: 900px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+            font-weight: 700;
+            font-size: 2rem;
+        }
+
+        /* Notification System */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .notification-icon {
+            position: relative;
+            background: var(--white);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: var(--box-shadow);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 10px;
+        }
+
+        .notification-icon:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .notification-icon i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: var(--white);
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .notification-panel {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            padding: 15px;
+        }
+
+        .notification-panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--light-gray);
+            margin-bottom: 10px;
+        }
+
+        .notification-header h3 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .clear-notifications {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .clear-notifications:hover {
+            color: var(--danger);
+        }
+
+        .notification-item {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: var(--light);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .notification-item:hover {
+            background: var(--light-gray);
+        }
+
+        .notification-item.unread {
+            background: rgba(67, 97, 238, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .notification-title i {
+            margin-right: 8px;
+            font-size: 0.9rem;
+        }
+
+        .notification-message {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .notification-time {
+            font-size: 0.75rem;
+            color: var(--gray);
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        .notification-item.info .notification-title i {
+            color: var(--info);
+        }
+
+        .notification-item.warning .notification-title i {
+            color: var(--warning);
+        }
+
+        .notification-item.success .notification-title i {
+            color: var(--success);
+        }
+
+        .notification-item.error .notification-title i {
+            color: var(--danger);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
         /* Form/Input Styles */
-        input[type="text"], input[type="password"], input[type="email"] { width: 100%; padding: 12px; margin: 8px 0 20px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        button { background-color: #004a8f; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; transition: background-color 0.3s ease; }
-        button:hover { background-color: #003366; }
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            padding: 15px;
+            margin: 8px 0 20px 0;
+            border: 1px solid var(--light-gray);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            outline: none;
+        }
+
+        button {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
 
         /* Flash Messages */
-        .flash { padding: 15px; margin: 15px auto; border-radius: 8px; text-align: center; max-width: 600px; font-weight: bold; }
-        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .flash.info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .flash {
+            padding: 15px;
+            margin: 15px auto;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 600px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flash i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .flash.error {
+            background-color: rgba(247, 37, 133, 0.1);
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        .flash.success {
+            background-color: rgba(76, 201, 240, 0.1);
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+
+        .flash.warning {
+            background-color: rgba(248, 150, 30, 0.1);
+            color: var(--warning);
+            border-left: 4px solid var(--warning);
+        }
+
+        .flash.info {
+            background-color: rgba(72, 149, 239, 0.1);
+            color: var(--info);
+            border-left: 4px solid var(--info);
+        }
 
         /* Exam View Specific Styles */
-        .question-container { border: 1px solid #ddd; padding: 20px; margin-bottom: 25px; border-radius: 8px; background: #f9f9f9; }
-        .question-text { font-size: 1.1em; font-weight: bold; color: #333; margin-bottom: 15px; }
-        .option-label { display: block; margin: 10px 0; padding: 10px; background-color: #fff; border: 1px solid #eee; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
-        .option-label:hover { background-color: #eef; }
-        .option-label input[type="radio"] { margin-right: 10px; }
+        .question-container {
+            border: 1px solid var(--light-gray);
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: var(--border-radius);
+            background: var(--light);
+            transition: var(--transition);
+        }
+
+        .question-container:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .question-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .option-label {
+            display: block;
+            margin: 12px 0;
+            padding: 15px;
+            background-color: var(--white);
+            border: 1px solid var(--light-gray);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-label:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+            border-color: var(--primary);
+        }
+
+        .option-label input[type="radio"] {
+            margin-right: 15px;
+            transform: scale(1.2);
+        }
 
         /* Final Submission Button */
-        .submit-exam-btn { background-color: #dc3545; margin-top: 30px; padding: 15px; font-size: 18px; }
-        .submit-exam-btn:hover { background-color: #c82333; }
+        .submit-exam-btn {
+            background: linear-gradient(to right, var(--danger), #e63946);
+            margin-top: 30px;
+            padding: 18px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .submit-exam-btn:hover {
+            box-shadow: 0 6px 20px rgba(247, 37, 133, 0.4);
+        }
         
         /* Navigation */
-        .top-nav { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 30px; }
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--light-gray);
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
 
         /* Pre-Check View Specific Styles */
-        .check-status { font-size: 1.1em; padding: 10px 15px; margin: 15px 0; border-radius: 6px; display: flex; align-items: center; font-weight: bold; }
-        .check-status.pending { background-color: #fff3cd; color: #856404; }
-        .check-status.success { background-color: #d4edda; color: #155724; }
-        .check-status.error { background-color: #f8d7da; color: #721c24; }
-        .status-icon { margin-right: 10px; font-size: 1.2em; } 
-        #video-stream { width: 100%; max-width: 320px; height: 240px; border: 3px solid #004a8f; border-radius: 8px; display: block; margin: 20px auto; background-color: #333; }
-        .start-exam-btn:disabled { background-color: #6c757d !important; cursor: not-allowed; }
+        .check-status {
+            font-size: 1.1rem;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .check-status.pending {
+            background-color: rgba(248, 150, 30, 0.1);
+            color: var(--warning);
+            border-left: 4px solid var(--warning);
+        }
+
+        .check-status.success {
+            background-color: rgba(76, 201, 240, 0.1);
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+
+        .check-status.error {
+            background-color: rgba(247, 37, 133, 0.1);
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        .status-icon {
+            margin-right: 15px;
+            font-size: 1.3rem;
+        }
+
+        #video-stream {
+            width: 100%;
+            max-width: 320px;
+            height: 240px;
+            border: 3px solid var(--primary);
+            border-radius: var(--border-radius);
+            display: block;
+            margin: 20px auto;
+            background-color: var(--dark);
+        }
+
+        .start-exam-btn:disabled {
+            background: var(--gray) !important;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .start-exam-btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
         
         /* Hidden canvas for image capture */
-        #capture-canvas { display: none; }
+        #capture-canvas {
+            display: none;
+        }
 
         /* In-Exam Proctoring Overlay Styles */
         #proctoring-overlay {
@@ -54,23 +443,26 @@
             top: 20px;
             right: 20px;
             z-index: 1000;
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background: var(--white);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
         }
+
         #proctoring-overlay #proctoring-video {
             width: 160px;
             height: 120px;
-            border: 3px solid red; 
-            border-radius: 4px;
+            border: 3px solid var(--danger); 
+            border-radius: 8px;
             display: block;
         }
+
         #proctoring-overlay #proctoring-status-in-exam {
             text-align: center;
-            font-size: 0.8em;
-            margin-top: 5px;
-            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            font-weight: 600;
+            color: var(--danger);
         }
         
         /* Countdown Timer Style */
@@ -79,20 +471,19 @@
             top: 20px;
             left: 20px;
             z-index: 1000;
-            background: #004a8f;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
             color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 1.2em;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            min-width: 180px;
+            padding: 15px 25px;
+            border-radius: var(--border-radius);
+            font-size: 1.3rem;
+            font-weight: 700;
+            box-shadow: var(--box-shadow);
+            min-width: 200px;
             text-align: center;
-            /* Hide initially */
-            display: none; 
+            display: none;
         }
 
-        /* Fullscreen styles to ensure the body content fills the view */
+        /* Fullscreen styles */
         .wrapper.fullscreen-active {
             max-width: none;
             width: 100vw;
@@ -103,12 +494,13 @@
             padding: 20px;
             overflow: auto;
         }
+
         body.fullscreen-active {
             padding: 0;
             align-items: stretch;
         }
 
-        /* NEW: Fullscreen Enforcer Modal */
+        /* Fullscreen Enforcer Modal */
         #fullscreen-modal {
             position: fixed;
             top: 0;
@@ -116,53 +508,132 @@
             width: 100vw;
             height: 100vh;
             background: rgba(0, 0, 0, 0.9);
-            z-index: 2000; /* Above everything else */
+            z-index: 2000;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
         }
+
         .modal-content {
-            background: white;
+            background: var(--white);
             padding: 40px;
-            border-radius: 10px;
+            border-radius: var(--border-radius);
             max-width: 600px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
         }
+
         .modal-content h2 {
-            color: #dc3545;
+            color: var(--danger);
+            margin-bottom: 20px;
         }
+
         /* Hide exam content initially */
         .exam-content {
             display: none;
         }
 
-        /* NEW: Progress Bar Styles */
+        /* Progress Bar Styles */
         .progress-bar-container {
             width: 100%;
-            background-color: #e0e0e0;
+            background-color: var(--light-gray);
             border-radius: 4px;
             margin-top: 5px;
             overflow: hidden;
         }
+
         .progress-bar {
             height: 10px;
             width: 0%;
             border-radius: 4px;
             transition: width 0.5s ease-in-out;
-            background-color: #004a8f; /* Default Blue */
+            background: linear-gradient(to right, var(--primary), var(--secondary));
         }
-        .progress-bar.low { background-color: #ffc107; } /* Yellow */
-        .progress-bar.medium { background-color: #17a2b8; } /* Cyan/Info */
-        .progress-bar.high { background-color: #28a745; } /* Green */
+
+        .progress-bar.low { background: linear-gradient(to right, var(--warning), #ff9e00); }
+        .progress-bar.medium { background: linear-gradient(to right, var(--info), #3a86ff); }
+        .progress-bar.high { background: linear-gradient(to right, var(--success), #38b000); }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .wrapper {
+                padding: 25px;
+            }
+            
+            h2 {
+                font-size: 1.7rem;
+            }
+            
+            .top-nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .top-nav h2 {
+                margin-bottom: 10px;
+            }
+            
+            .notification-panel {
+                width: 300px;
+            }
+            
+            #countdown-timer {
+                font-size: 1.1rem;
+                min-width: 170px;
+                padding: 12px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .wrapper {
+                padding: 20px;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .notification-panel {
+                width: 280px;
+                right: 10px;
+            }
+            
+            .modal-content {
+                padding: 25px;
+            }
+        }
     </style>
 </head>
 <body class="{{ 'fullscreen-active' if exam_view else '' }}">
 
+    <!-- Notification System -->
+    <div class="notification-container">
+        <div class="notification-icon" id="notification-icon">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge" id="notification-badge">3</span>
+        </div>
+        <div class="notification-panel" id="notification-panel">
+            <div class="notification-header">
+                <h3>Notifications</h3>
+                <button class="clear-notifications" id="clear-notifications">Clear All</button>
+            </div>
+            <div class="notification-list" id="notification-list">
+                <!-- Notifications will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
+                <div class="flash {{ category }}">
+                    <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' }}"></i>
+                    {{ message }}
+                </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
@@ -171,9 +642,9 @@
 
     {% if test_login_view %}
 
-        <h2 style="color: #004a8f;">Online Assessment Login</h2>
-        <p style="text-align: center; color: #666; margin-bottom: 30px;">
-            Please enter your **Exam ID**, **Email**, and **Password** from your invitation email to begin the test.
+        <h2>Online Assessment Login</h2>
+        <p style="text-align: center; color: var(--gray); margin-bottom: 30px;">
+            Please enter your <strong>Exam ID</strong>, <strong>Email</strong>, and <strong>Password</strong> from your invitation email to begin the test.
         </p>
 
         <form action="{{ url_for('test_login', exam_id=exam_id) }}" method="POST">
@@ -189,7 +660,7 @@
             >
 
             {% if is_placeholder %}
-                <p style="font-size: 0.9em; color: #dc3545; margin-top: -15px;">**Note:** You must enter the full Exam ID manually.</p>
+                <p style="font-size: 0.9rem; color: var(--danger); margin-top: -15px;"><strong>Note:</strong> You must enter the full Exam ID manually.</p>
             {% endif %}
 
             <label for="email"><b>Email (Username)</b></label>
@@ -198,18 +669,18 @@
             <label for="password"><b>Password</b></label>
             <input type="password" placeholder="Enter Password" name="password" required>
 
-            <button type="submit">Start Test &rarr;</button>
-            <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: #004a8f;">Logout</a>
+            <button type="submit">Start Test <i class="fas fa-arrow-right"></i></button>
+            <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: var(--primary);">Logout</a>
         </form>
 
     {% elif pre_check_view %}
     
-        <h2 style="color: #004a8f;">System Check: Camera, Mic, Network, & Face Presence</h2>
-        <p style="text-align: center; color: #dc3545; font-weight: bold;">
-            ⚠️ You must enable all devices and look at the camera to start the exam.
+        <h2>System Check: Camera, Mic, Network, & Face Presence</h2>
+        <p style="text-align: center; color: var(--danger); font-weight: 600;">
+            <i class="fas fa-exclamation-triangle"></i> You must enable all devices and look at the camera to start the exam.
         </p>
         <p style="text-align: center; margin-bottom: 20px;">
-            **Exam:** {{ exam_title }} | **Student:** {{ email }}
+            <strong>Exam:</strong> {{ exam_title }} | <strong>Student:</strong> {{ email }}
         </p>
         <hr>
 
@@ -217,73 +688,73 @@
         <canvas id="capture-canvas"></canvas>
 
         <div id="camera-status" class="check-status pending">
-            <span class="status-icon">🟡</span> Camera Status: Testing...
+            <span class="status-icon"><i class="fas fa-camera"></i></span> Camera Status: Testing...
         </div>
 
         <div id="mic-status" class="check-status pending">
-            <span class="status-icon">🟡</span> Microphone Status: Testing...
+            <span class="status-icon"><i class="fas fa-microphone"></i></span> Microphone Status: Testing...
         </div>
         
         <div id="network-status" class="check-status pending">
-            <span class="status-icon">🟡</span> Network Speed: Testing Upload...
+            <span class="status-icon"><i class="fas fa-wifi"></i></span> Network Speed: Testing Upload...
             <div class="progress-bar-container">
                 <div id="speed-progress-bar" class="progress-bar"></div>
             </div>
         </div>
 
         <div id="face-status" class="check-status pending">
-            <span class="status-icon">🟡</span> Face Detection: Starting Server Check...
+            <span class="status-icon"><i class="fas fa-user"></i></span> Face Detection: Starting Server Check...
         </div>
 
         <button id="start-exam-btn" disabled class="submit-exam-btn start-exam-btn">
-            System Checks Incomplete
+            <i class="fas fa-lock"></i> System Checks Incomplete
         </button>
 
-        <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: #dc3545;">
-            Cancel and Log Out
+        <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: var(--danger);">
+            <i class="fas fa-times-circle"></i> Cancel and Log Out
         </a>
 
     {% elif instructions_view %}
 
-        <h2 style="color: #dc3545;">Exam Instructions & Final Warning</h2>
-        <p style="text-align: center; font-size: 1.1em; margin-bottom: 30px;">
-            **Exam:** {{ exam_paper.examTitle }} | **Duration:** {{ exam_paper.testDuration }} minutes
+        <h2 style="color: var(--danger);">Exam Instructions & Final Warning</h2>
+        <p style="text-align: center; font-size: 1.1rem; margin-bottom: 30px;">
+            <strong>Exam:</strong> {{ exam_paper.examTitle }} | <strong>Duration:</strong> {{ exam_paper.testDuration }} minutes
         </p>
         <hr>
 
-        <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-            <p style="font-size: 1.2em; font-weight: bold; margin-top: 0;">CRITICAL PROCTORING REQUIREMENTS:</p>
-            <ul>
-                <li>This exam is **actively proctored** using your camera and microphone.</li>
-                <li>You must remain in **FULLSCREEN** mode for the entire duration.</li>
-                <li>**Do not** exit fullscreen, switch tabs, refresh, or navigate away.</li>
-                <li>**Any** violation will result in **immediate exam termination** and automatic submission of your current progress.</li>
+        <div style="background-color: rgba(247, 37, 133, 0.1); color: var(--danger); border: 1px solid rgba(247, 37, 133, 0.3); padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <p style="font-size: 1.2rem; font-weight: 700; margin-top: 0;"><i class="fas fa-exclamation-circle"></i> CRITICAL PROCTORING REQUIREMENTS:</p>
+            <ul style="padding-left: 20px;">
+                <li>This exam is <strong>actively proctored</strong> using your camera and microphone.</li>
+                <li>You must remain in <strong>FULLSCREEN</strong> mode for the entire duration.</li>
+                <li><strong>Do not</strong> exit fullscreen, switch tabs, refresh, or navigate away.</li>
+                <li><strong>Any</strong> violation will result in <strong>immediate exam termination</strong> and automatic submission of your current progress.</li>
             </ul>
         </div>
         
-        <p style="text-align: center;">By clicking the button below, your exam will begin. You will be immediately prompted to enter fullscreen mode. **The timer and questions will not be shown until you activate fullscreen.**</p>
+        <p style="text-align: center;">By clicking the button below, your exam will begin. You will be immediately prompted to enter fullscreen mode. <strong>The timer and questions will not be shown until you activate fullscreen.</strong></p>
 
-        <button id="start-exam-final-btn" class="submit-exam-btn" style="background-color: #004a8f; margin-top: 30px;">
-            I Understand: Start Exam &rarr;
+        <button id="start-exam-final-btn" class="submit-exam-btn" style="background: linear-gradient(to right, var(--primary), var(--secondary)); margin-top: 30px;">
+            <i class="fas fa-play-circle"></i> I Understand: Start Exam &rarr;
         </button>
 
-        <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: #dc3545;">
-            Cancel and Log Out
+        <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 15px; color: var(--danger);">
+            <i class="fas fa-times-circle"></i> Cancel and Log Out
         </a>
 
     {% elif exam_view %}
         
         <div id="fullscreen-modal">
             <div class="modal-content">
-                <h2>⚠️ FULLSCREEN REQUIRED ⚠️</h2>
-                <p style="font-size: 1.1em;">
-                    Your exam is ready, but to maintain proctoring integrity, you must enter **Full-Screen Mode**.
+                <h2><i class="fas fa-exclamation-triangle"></i> FULLSCREEN REQUIRED <i class="fas fa-exclamation-triangle"></i></h2>
+                <p style="font-size: 1.1rem;">
+                    Your exam is ready, but to maintain proctoring integrity, you must enter <strong>Full-Screen Mode</strong>.
                 </p>
-                <p style="font-weight: bold; color: #dc3545;">
+                <p style="font-weight: 700; color: var(--danger);">
                     The timer will NOT start, and questions will NOT be visible until you click the button below.
                 </p>
                 <button id="activate-fullscreen-btn" class="submit-exam-btn" style="width: auto; padding: 15px 40px; margin-top: 20px;">
-                    Activate Fullscreen & Start Exam
+                    <i class="fas fa-expand"></i> Activate Fullscreen & Start Exam
                 </button>
             </div>
         </div>
@@ -291,28 +762,28 @@
         <div id="proctoring-status-container" class="exam-content">
             {% if deepface_proctoring %}
             <div id="proctoring-overlay">
-                <p style="margin: 0 0 5px 0; font-size: 0.9em; font-weight: bold; color: #004a8f;">Proctoring Status</p>
+                <p style="margin: 0 0 5px 0; font-size: 0.9rem; font-weight: 700; color: var(--primary);">Proctoring Status</p>
                 <video id="proctoring-video" autoplay playsinline muted></video>
-                <p id="proctoring-status-in-exam" style="color: red;">Checking Face...</p>
+                <p id="proctoring-status-in-exam" style="color: var(--danger);"><i class="fas fa-user-clock"></i> Checking Face...</p>
             </div>
             {% endif %}
             <canvas id="capture-canvas"></canvas>
             
             <div id="countdown-timer">
-                Time Remaining: <span id="time-display">Calculating...</span>
+                <i class="fas fa-clock"></i> Time Remaining: <span id="time-display">Calculating...</span>
             </div>
         </div>
 
         <div id="exam-questions-content" class="exam-content" style="width: 100%;">
             <div class="top-nav">
-                <h2 style="margin: 0; color: #004a8f;">{{ exam_paper.examTitle }}</h2>
+                <h2 style="margin: 0; color: var(--primary);">{{ exam_paper.examTitle }}</h2>
                 <p style="margin: 0;">Logged in as: <strong>{{ email }}</strong></p>
             </div>
 
             <p><strong>Total Questions:</strong> {{ exam_paper.questions | length }}</p>
             <p><strong>Duration:</strong> {{ exam_paper.testDuration }} minutes</p>
-            <p style="color: #dc3545; font-weight: bold;">
-                CRITICAL WARNING: This exam is actively proctored. Exiting fullscreen, switching tabs, refreshing, or navigating away WILL automatically terminate your exam.
+            <p style="color: var(--danger); font-weight: 700;">
+                <i class="fas fa-exclamation-triangle"></i> CRITICAL WARNING: This exam is actively proctored. Exiting fullscreen, switching tabs, refreshing, or navigating away WILL automatically terminate your exam.
             </p>
             <hr>
 
@@ -335,7 +806,9 @@
                 </div>
                 {% endfor %}
 
-                <button type="submit" class="submit-exam-btn">FINALIZE & SUBMIT EXAM</button>
+                <button type="submit" class="submit-exam-btn">
+                    <i class="fas fa-paper-plane"></i> FINALIZE & SUBMIT EXAM
+                </button>
             </form>
         </div>
 
@@ -345,27 +818,27 @@
 
         {% set submission_successful = True if get_flashed_messages(category_filter=['success']) else False %}
 
-        <p style="text-align: center; font-size: 1.2em; color: {{ '#28a745' if submission_successful else '#dc3545' }}; font-weight: bold;">
+        <p style="text-align: center; font-size: 1.2rem; color: {{ 'var(--success)' if submission_successful else 'var(--danger)' }}; font-weight: 700;">
             {% if submission_successful %}
-                Your submission was successful!
+                <i class="fas fa-check-circle"></i> Your submission was successful!
             {% else %}
-                Access to this exam page is generally denied after submission or outside the exam window.
+                <i class="fas fa-exclamation-circle"></i> Access to this exam page is generally denied after submission or outside the exam window.
             {% endif %}
         </p>
         
-        <p style="text-align: center; font-size: 1.5em; margin-top: 30px;">
+        <p style="text-align: center; font-size: 1.5rem; margin-top: 30px;">
             {% if submission_successful %}
                 Thank you for completing the assessment.
             {% else %}
                 If you believe this is an error, please contact support.
             {% endif %}
         </p>
-        <p style="text-align: center; color: #666;">
+        <p style="text-align: center; color: var(--gray);">
             The final result will be communicated by the hiring team directly via email.
         </p>
 
         <a href="{{ url_for('exam_logout') }}" style="display: block; text-align: center; margin-top: 30px;">
-            <button style="width: auto; padding: 10px 30px; background-color: #6c757d;">Log Out</button>
+            <button style="width: auto; padding: 10px 30px; background: var(--gray);"><i class="fas fa-sign-out-alt"></i> Log Out</button>
         </a>
 
     {% endif %}
@@ -374,6 +847,107 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Notification System
+            const notificationIcon = document.getElementById('notification-icon');
+            const notificationPanel = document.getElementById('notification-panel');
+            const notificationBadge = document.getElementById('notification-badge');
+            const notificationList = document.getElementById('notification-list');
+            const clearNotificationsBtn = document.getElementById('clear-notifications');
+            
+            // Sample notifications data
+            const notifications = [
+                {
+                    id: 1,
+                    title: 'System Check Complete',
+                    message: 'All system checks passed successfully. You can proceed to the exam.',
+                    type: 'success',
+                    time: '2 minutes ago',
+                    unread: true
+                },
+                {
+                    id: 2,
+                    title: 'Exam Reminder',
+                    message: 'Your exam will begin in 5 minutes. Please ensure you are in a quiet environment.',
+                    type: 'info',
+                    time: '10 minutes ago',
+                    unread: true
+                },
+                {
+                    id: 3,
+                    title: 'Camera Access Required',
+                    message: 'Please allow camera access for proctoring purposes.',
+                    type: 'warning',
+                    time: '1 hour ago',
+                    unread: false
+                }
+            ];
+            
+            // Function to render notifications
+            function renderNotifications() {
+                notificationList.innerHTML = '';
+                let unreadCount = 0;
+                
+                notifications.forEach(notification => {
+                    if (notification.unread) unreadCount++;
+                    
+                    const notificationItem = document.createElement('div');
+                    notificationItem.className = `notification-item ${notification.type} ${notification.unread ? 'unread' : ''}`;
+                    notificationItem.innerHTML = `
+                        <div class="notification-title">
+                            <i class="fas fa-${notification.type === 'success' ? 'check-circle' : notification.type === 'warning' ? 'exclamation-triangle' : notification.type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                            ${notification.title}
+                        </div>
+                        <div class="notification-message">${notification.message}</div>
+                        <div class="notification-time">${notification.time}</div>
+                    `;
+                    
+                    notificationItem.addEventListener('click', function() {
+                        // Mark as read when clicked
+                        if (notification.unread) {
+                            notification.unread = false;
+                            renderNotifications();
+                        }
+                    });
+                    
+                    notificationList.appendChild(notificationItem);
+                });
+                
+                // Update badge count
+                notificationBadge.textContent = unreadCount;
+                if (unreadCount === 0) {
+                    notificationBadge.style.display = 'none';
+                } else {
+                    notificationBadge.style.display = 'flex';
+                }
+            }
+            
+            // Toggle notification panel
+            notificationIcon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                notificationPanel.classList.toggle('active');
+            });
+            
+            // Clear all notifications
+            clearNotificationsBtn.addEventListener('click', function() {
+                notifications.forEach(notification => {
+                    notification.unread = false;
+                });
+                renderNotifications();
+            });
+            
+            // Close notification panel when clicking outside
+            document.addEventListener('click', function() {
+                notificationPanel.classList.remove('active');
+            });
+            
+            // Prevent closing when clicking inside the panel
+            notificationPanel.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            
+            // Initial render
+            renderNotifications();
+
             // Check if we are in the pre-check view (STEP 2)
             const videoElementPreCheck = document.getElementById('video-stream');
             
@@ -390,14 +964,13 @@
             let intervalHandle = null; 
             let examStarted = false; // Flag for when timer/proctoring are active
 
-
             // --- SHARED ELEMENTS ---
             const canvas = document.getElementById('capture-canvas');
             const checkFaceApiUrl = "{{ url_for('api_check_face') }}";
             const reportViolationApiUrl = "{{ url_for('api_report_violation') }}";
             let currentStream = null;
             let faceCheckInterval = null;
-            let countdownTimer = null; 
+            let noFaceTimer = null; // Renamed from countdownTimer for clarity in the exam view
             let isExamActive = false; // Flag to track if exam is running and we should enforce proctoring
 
             // =======================================================
@@ -419,7 +992,7 @@
                 // 2. Stop all local processes immediately
                 if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
                 if (faceCheckInterval) { clearInterval(faceCheckInterval); }
-                if (countdownTimer) { clearInterval(countdownTimer); }
+                if (noFaceTimer) { clearInterval(noFaceTimer); }
                 if (intervalHandle) { clearInterval(intervalHandle); }
 
                 // 3. ASYNCHRONOUSLY log the violation to the server (Non-blocking)
@@ -494,7 +1067,7 @@
                     isExamActive = false; 
                     if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); }
                     if (faceCheckInterval) { clearInterval(faceCheckInterval); }
-                    if (countdownTimer) { clearInterval(countdownTimer); }
+                    if (noFaceTimer) { clearInterval(noFaceTimer); }
                     if (intervalHandle) { clearInterval(intervalHandle); }
                 });
 
@@ -515,7 +1088,7 @@
                     // 3. Start Timer and Proctoring
                     startExamTimer();
                     if (isProctoringEnabled) {
-                         startInExamProctoring();
+                            startInExamProctoring();
                     }
                     console.log("Exam started successfully.");
                 }
@@ -592,7 +1165,7 @@
 
                         if (totalSeconds <= 300) { 
                             timeDisplay.style.color = '#ffdddd';
-                            document.getElementById('countdown-timer').style.backgroundColor = '#dc3545';
+                            document.getElementById('countdown-timer').style.background = 'linear-gradient(to right, var(--danger), #e63946)';
                         }
                     }
 
@@ -600,21 +1173,23 @@
                     intervalHandle = setInterval(updateTimer, 1000);
                 }
 
-                function startCountdownDisplay(currentCount) {
+                function startNoFaceCountdown(consecutiveCount) {
                     const statusProctoring = document.getElementById('proctoring-status-in-exam');
-                    if (countdownActive) return; 
+                    // Stop any existing timer first
+                    if (noFaceTimer) { clearInterval(noFaceTimer); }
 
-                    countdownActive = true;
-                    let count = 5;
-                    statusProctoring.innerHTML = `<span style="color: red;">⚠️ No Face! Retrying in ${count}s...</span>`;
+                    let count = 5; // Start the 5 second countdown 
 
-                    countdownTimer = setInterval(() => {
+                    noFaceTimer = setInterval(() => {
                         count--;
-                        if (count > 0) {
-                            statusProctoring.innerHTML = `<span style="color: red;">⚠️ No Face! Retrying in ${count}s...</span>`;
+                        if (count >= 0) {
+                            // Display the core information from the server's last message, plus the immediate countdown
+                            statusProctoring.innerHTML = `<span style="color: var(--warning);"><i class="fas fa-exclamation-triangle"></i> Face Lost! ${consecutiveCount}/5. Check in ${count}s...</span>`;
+                            document.getElementById('proctoring-video').style.borderColor = 'var(--warning)';
                         } else {
-                            clearInterval(countdownTimer);
-                            countdownActive = false;
+                            // This should only stop the local timer; server will handle the *actual* termination
+                            clearInterval(noFaceTimer);
+                            noFaceTimer = null;
                         }
                     }, 1000);
                 }
@@ -622,7 +1197,7 @@
                 async function performInExamDeepFaceCheck() {
                     const videoProctoring = document.getElementById('proctoring-video');
                     const statusProctoring = document.getElementById('proctoring-status-in-exam');
-                    if (videoProctoring.readyState < 2 || countdownActive) return; 
+                    if (videoProctoring.readyState < 2) return; 
 
                     canvas.width = videoProctoring.videoWidth;
                     canvas.height = videoProctoring.videoHeight;
@@ -647,25 +1222,34 @@
                         }
 
                         if (result.face_detected) {
-                            if(countdownTimer) clearInterval(countdownTimer);
-                            countdownActive = false;
-                            statusProctoring.textContent = "OK: Face Detected";
-                            videoProctoring.style.borderColor = 'green';
+                            // Face Detected: Reset timer/indicators
+                            if(noFaceTimer) clearInterval(noFaceTimer);
+                            noFaceTimer = null;
+                            statusProctoring.innerHTML = "<i class='fas fa-check-circle'></i> Face Detected";
+                            document.getElementById('proctoring-video').style.borderColor = 'var(--success)';
                         } else {
-                            videoProctoring.style.borderColor = 'orange';
-
+                            // Face NOT Detected or Multiple Faces
+                            
+                            // Check if a warning timer needs to start/be active
                             if (result.no_face_count > 0 && result.no_face_count < 5) {
-                                startCountdownDisplay(result.no_face_count);
+                                // Face lost for the 1st, 2nd, 3rd, 4th time (consecutive count 1-4)
+                                statusProctoring.textContent = result.message; // Use the message generated by the server
+                                startNoFaceCountdown(result.no_face_count);
                             } else if (result.multiple_face_count === 1) {
-                                statusProctoring.innerHTML = `<span style="color: red;">VIOLATION (1st): Multiple faces detected. Next offense terminates exam!</span>`;
-                            } else {
+                                // Multiple face detected (1st offense)
                                 statusProctoring.textContent = result.message;
+                                document.getElementById('proctoring-video').style.borderColor = 'var(--danger)';
+                            } else {
+                                // Generic error (e.g., mock mode, or transient error)
+                                statusProctoring.textContent = result.message; 
+                                document.getElementById('proctoring-video').style.borderColor = 'var(--danger)';
                             }
                         }
 
                     } catch (error) {
-                        statusProctoring.textContent = "ERROR: Lost connection.";
-                        videoProctoring.style.borderColor = 'red';
+                        // Connection/Server failure
+                        statusProctoring.innerHTML = "<i class='fas fa-exclamation-circle'></i> ERROR: Lost connection to server.";
+                        document.getElementById('proctoring-video').style.borderColor = 'var(--danger)';
                     }
                 }
 
@@ -679,13 +1263,20 @@
                         videoProctoring.srcObject = currentStream;
                         videoProctoring.play();
                         
-                        faceCheckInterval = setInterval(performInExamDeepFaceCheck, intervalTime + 500);
-                        statusProctoring.textContent = "Proctoring ON.";
-                        videoProctoring.style.borderColor = 'green'; 
-
+                        // Wait for video stream to be ready before starting checks
+                        videoProctoring.addEventListener('play', () => {
+                            if (faceCheckInterval) clearInterval(faceCheckInterval);
+                            // Set initial message
+                            statusProctoring.innerHTML = "<i class='fas fa-check-circle'></i> Face Detected";
+                            videoProctoring.style.borderColor = 'var(--success)';
+                            
+                            // Start server checks every 5 seconds + buffer
+                            faceCheckInterval = setInterval(performInExamDeepFaceCheck, intervalTime); 
+                        }, { once: true });
+                        
                     } catch (err) {
-                        statusProctoring.textContent = "CRITICAL: Camera Lost/Blocked! Exam is compromised.";
-                        videoProctoring.style.borderColor = 'red';
+                        statusProctoring.innerHTML = "<i class='fas fa-exclamation-circle'></i> CRITICAL: Camera Blocked! Exam is compromised.";
+                        videoProctoring.style.borderColor = 'var(--danger)';
                         reportAndTerminate(
                             'CAMERA_ACCESS_LOST', 
                             'Critical Error: Your camera access was lost during the exam. Your exam is terminated.'
@@ -714,10 +1305,10 @@
 
                 function updateStatus(element, isSuccess, message) {
                     element.className = 'check-status ' + (isSuccess ? 'success' : 'error');
-                    element.querySelector('.status-icon').textContent = isSuccess ? '🟢' : '🔴';
+                    element.querySelector('.status-icon').innerHTML = isSuccess ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>';
                     // NOTE: Special handling for network status to preserve the progress bar container
                     if (element.id !== 'network-status') {
-                        element.innerHTML = `<span class="status-icon">${isSuccess ? '🟢' : '🔴'}</span> ${message}`;
+                        element.innerHTML = `<span class="status-icon">${isSuccess ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}</span> ${message}`;
                     } else {
                         // For network status, only update the text, preserving the inner bar structure
                         let icon = element.querySelector('.status-icon').outerHTML;
@@ -729,12 +1320,12 @@
                 function checkStartButton() {
                     if (isCameraReady && isMicReady && isNetworkReady && isFaceDetected) {
                         startButton.disabled = false;
-                        startButton.style.backgroundColor = '#004a8f';
-                        startButton.textContent = "Proceed to Exam Instructions →"; 
+                        startButton.style.background = 'linear-gradient(to right, var(--primary), var(--secondary))';
+                        startButton.innerHTML = '<i class="fas fa-unlock"></i> Proceed to Exam Instructions →'; 
                     } else {
                         startButton.disabled = true;
-                        startButton.style.backgroundColor = '#6c757d';
-                        startButton.textContent = "System Checks Incomplete";
+                        startButton.style.background = 'var(--gray)';
+                        startButton.innerHTML = '<i class="fas fa-lock"></i> System Checks Incomplete';
                     }
                 }
 
@@ -778,8 +1369,8 @@
                             networkStatus.classList.add('success');
                             
                             // Re-insert the status icon and update the text
-                            networkStatus.innerHTML = networkStatus.querySelector('.status-icon').outerHTML + `Network Speed: **${simulatedSpeed.toFixed(2)} KB/s** (Passing Client-Side Check)` + networkStatus.querySelector('.progress-bar-container').outerHTML;
-                            networkStatus.querySelector('.status-icon').textContent = '🟢';
+                            networkStatus.innerHTML = networkStatus.querySelector('.status-icon').outerHTML + `Network Speed: <strong>${simulatedSpeed.toFixed(2)} KB/s</strong> (Passing Client-Side Check)` + networkStatus.querySelector('.progress-bar-container').outerHTML;
+                            networkStatus.querySelector('.status-icon').innerHTML = '<i class="fas fa-check-circle"></i>';
 
                             checkStartButton();
                         }
@@ -890,7 +1481,7 @@
             if (isInstructionsView && startExamFinalBtn) {
                 startExamFinalBtn.addEventListener('click', function() {
                     this.disabled = true;
-                    this.textContent = 'Starting Exam... Redirecting.';
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting Exam... Redirecting.';
 
                     // Redirect to the exam view, which will immediately show the fullscreen modal
                     window.location.href = "{{ url_for('start_exam', exam_id=exam_id) }}";
