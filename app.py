@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from dotenv import load_dotenv
+from pathlib import Path
+import os
 import requests
 from functools import wraps
 import uuid
@@ -13,8 +16,13 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import random 
 
-# Load environment variables from .env file
-load_dotenv()
+# ===============================
+# FORCE LOAD .env FILE (FIX)
+# ===============================
+BASE_DIR = Path(__file__).resolve().parent
+env_path = BASE_DIR / ".env"
+
+load_dotenv(dotenv_path=env_path)
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
@@ -1801,4 +1809,5 @@ if __name__ == '__main__':
     # Render requires binding to the provided PORT, not default 5000
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
